@@ -1,0 +1,1381 @@
+<style>
+  :root{
+    --sp-green:#004B3D;
+    --sp-ink:#1d1d1f;
+    --sp-muted:#6b7280;
+    --sp-border:#e5e7eb;
+    --sp-bg:#f8fafc;
+    --sp-card:#ffffff;
+    --sp-radius:14px;
+  }
+  #sp-scope{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,"Helvetica Neue",Arial,"Noto Sans","Apple Color Emoji","Segoe UI Emoji";color:var(--sp-ink)}
+  #sp-scope *{box-sizing:border-box}
+
+  .sp-container{max-width:1100px;margin:0 auto;padding:20px}
+  .sp-header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between;margin-bottom:18px}
+  .sp-title{font-size:22px;font-weight:800;letter-spacing:.2px;display:flex;align-items:center;gap:10px}
+  .sp-badge{background:var(--sp-green);color:#fff;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}
+
+  .sp-actions{display:flex;gap:10px;flex-wrap:wrap}
+  .sp-btn{appearance:none;border:1px solid var(--sp-border);background:#fff;color:var(--sp-ink);padding:10px 14px;border-radius:12px;font-weight:700;cursor:pointer;transition:transform .02s ease,border-color .2s ease,background .2s ease}
+  .sp-btn:active{transform:translateY(1px)}
+  .sp-btn.primary{background:var(--sp-green);color:#fff;border-color:var(--sp-green)}
+  .sp-btn.ghost{background:#fff}
+  .sp-btn.danger{background:#fff;color:#b91c1c;border-color:#fecaca}
+
+  .sp-sections{display:grid;gap:16px}
+  .sp-card{background:var(--sp-card);border:1px solid var(--sp-border);border-radius:var(--sp-radius);padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .sp-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .sp-card-title{font-size:16px;font-weight:800}
+  .sp-card.is-collapsed .sp-grid{display:none}
+
+  .sp-grid{display:grid;gap:12px}
+  @media(min-width:720px){
+    .sp-grid{grid-template-columns:repeat(12,1fr)}
+    .col-6{grid-column:span 6}
+    .col-4{grid-column:span 4}
+    .col-3{grid-column:span 3}
+    .col-2{grid-column:span 2}
+    .col-8{grid-column:span 8}
+    .col-12{grid-column:span 12}
+  }
+  @media(max-width:719px){
+    .col-6,.col-4,.col-3,.col-2,.col-8,.col-12{grid-column:span 12}
+  }
+
+  .sp-field{display:flex;flex-direction:column;gap:6px}
+  .sp-label{font-size:12px;font-weight:800;color:var(--sp-muted);letter-spacing:.4px;text-transform:uppercase}
+  .sp-input,.sp-select,.sp-textarea{border:1px solid var(--sp-border);border-radius:12px;padding:10px 12px;background:#fff;font-size:14px;width:100%}
+  .sp-textarea{min-height:68px;resize:vertical}
+  .sp-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+  /* Rail row (Rails count + all rail blocks on one row, top-aligned) */
+  .sp-rail-row{
+    display:grid;
+    gap:12px;
+    align-items:start;
+  }
+  .sp-rail-row > .sp-field{ align-self:start; }
+
+  @media(min-width:720px){
+    .sp-rail-row{ grid-template-columns: var(--rail-cols, repeat(3, minmax(200px,1fr))); }
+  }
+  @media(max-width:719px){
+    .sp-rail-row{ grid-template-columns: 1fr; }
+  }
+
+  /* Number control */
+  .sp-number{display:flex;align-items:stretch;border:1px solid var(--sp-border);border-radius:12px;overflow:hidden}
+  .sp-number input{border:0;flex:1;min-width:0;padding:10px 12px;font-size:14px;-moz-appearance:textfield}
+  .sp-number input::-webkit-outer-spin-button,.sp-number input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .sp-step{min-width:46px;font-weight:900;display:grid;place-items:center;border:0;background:var(--sp-bg);cursor:pointer}
+  .sp-step:active{filter:brightness(.95)}
+
+  .sp-small{font-size:12px;color:var(--sp-muted)}
+  .sp-output{margin-top:18px; display:grid; gap:16px}
+  .sp-output textarea{width:100%;min-height:200px;border:1px solid var(--sp-border);border-radius:12px;padding:12px;background:#fff;font-size:14px}
+  .sp-hint{font-size:12px;color:var(--sp-muted);margin-top:6px}
+  .sp-divider{height:1px;background:var(--sp-border);margin:12px 0}
+  .sp-chip{border:1px dashed var(--sp-border);padding:4px 8px;border-radius:999px;font-size:12px;color:var(--sp-muted)}
+</style>
+
+<div id="sp-scope">
+  <div class="sp-container">
+    <div class="sp-header">
+      <div class="sp-title">Wrought Iron Restoration – Scope Generator</div>
+      <div class="sp-actions">
+        <button class="sp-btn ghost" id="sp-reset">Reset</button>
+        <button class="sp-btn" id="sp-add">+ Add Section</button>
+        <button class="sp-btn primary" id="sp-complete">Complete → Generate Notes</button>
+      </div>
+    </div>
+
+    <div class="sp-small" style="margin-bottom:10px">Tip: Use the big + / – buttons on number fields to bump by 1. Add as many sections as you need (front, left side, pool run, etc.).</div>
+
+    <div id="sp-sections" class="sp-sections"></div>
+
+    <div class="sp-output" id="sp-output" style="display:none">
+      <div class="sp-card">
+        <div class="sp-card-header">
+          <div class="sp-card-title">Notes</div>
+          <div class="sp-row">
+            <span class="sp-chip" id="sp-totals-chip" title="Auto-calculated across sections">Totals included</span>
+            <button class="sp-btn" id="sp-copy">Copy Notes</button>
+          </div>
+        </div>
+        <textarea id="sp-notes" readonly></textarea>
+        <div class="sp-hint">These notes are formatted for easy paste into Housecall Pro or your CRM.</div>
+      </div>
+      <div class="sp-card" id="sp-sub">
+        <div class="sp-card-header">
+          <div class="sp-card-title">Notes for Sub</div>
+          <div class="sp-row">
+            <button class="sp-btn" id="sp-copy-sub">Copy Notes</button>
+          </div>
+        </div>
+        <textarea id="sp-notes-sub" readonly></textarea>
+        <div class="sp-hint">Crew-facing summary: duration, materials, and total repairs.</div>
+      </div>
+      <!-- Removed the separate Estimated Cost card -->
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const $  = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+  const SEED = {
+    style:["Flat Top","Extended Picket","Extended Picket w/ Finials"],
+    height:["3ft","4ft","5ft","6ft","8ft"],
+    railSize:["1\u201D","1 \u00BC\u201D","1 \u00BD\u201D","1 \u00BE\u201D","1x2\u201D","2\u201D","3\u201D","Flat Bar 1/4\" x 1\""],
+    picketSize:["1/2\u201D","5/8\u201D","3/4\u201D","1\u201D"],
+    postSize:["2x2","3x3"],
+    puppy:["None","Puppy Pickets","Puppy Pickets w/ Finials","Puppy Pickets Full Height","Puppy Pickets Full Height w/ Finials"],
+  };
+
+  const GATE = {
+    latchTypes: [
+      'Gravity Latch',
+      'Short Pool Latch',
+      'Tall Pool Latch',
+      'Single Lock Box',
+      'Double Lock Box'
+    ],
+    hingeTypes: [
+      'Door Hinges',
+      'Bat Wing Hinges',
+      'Auto Close Hinges'
+    ]
+  };
+
+  const state = { sections: [] };
+
+  const sectionsEl = $('#sp-sections');
+  const outputEl   = $('#sp-output');
+  const notesEl    = $('#sp-notes');
+  const notesSubEl = $('#sp-notes-sub');
+
+  function uid(){ return 'sec_' + Math.random().toString(36).slice(2,9); }
+
+  // Safe HTML escaping for option rendering
+  function escapeHtml(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function escapeAttr(t){ return escapeHtml(t).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+  function createSelect(options){
+    return options.map(v=>`<option value="${escapeAttr(v)}">${escapeHtml(v)}</option>`).join('');
+  }
+
+  function numberControl(name, placeholder='', min=0){
+    return (
+      '<div class="sp-number" data-field="'+name+'">'+
+        '<button type="button" class="sp-step" data-dir="-1" aria-label="decrement">–</button>'+
+        '<input type="number" inputmode="numeric" step="1" min="'+min+'" value="" placeholder="'+placeholder+'" />'+
+        '<button type="button" class="sp-step" data-dir="1" aria-label="increment">+</button>'+
+      '</div>'
+    );
+  }
+
+  function sectionTemplate(id, index){
+    return `
+    <div class="sp-card" data-id="${id}">
+      <div class="sp-card-header">
+        <div class="sp-card-title">Section ${index+1}</div>
+        <div class="sp-row">
+          <button class="sp-btn ghost sp-toggle" type="button" aria-expanded="true">Collapse</button>
+          <button class="sp-btn ghost sp-dup" type="button">Duplicate</button>
+          <button class="sp-btn danger sp-del" type="button">Remove</button>
+        </div>
+      </div>
+      <div class="sp-grid">
+        <div class="sp-field col-6">
+          <label class="sp-label">Section Label (e.g., Front, Left Side, Pool Run)</label>
+          <input class="sp-input" data-field="label" placeholder="Enter a label" />
+        </div>
+        <div class="sp-field col-2">
+          <label class="sp-label">Style</label>
+          <select class="sp-select" data-field="style">${createSelect(SEED.style)}</select>
+        </div>
+        <div class="sp-field col-2">
+          <label class="sp-label">Height</label>
+          <select class="sp-select" data-field="height">${createSelect(SEED.height)}</select>
+        </div>
+        <div class="sp-field col-2">
+          <label class="sp-label">Post Size</label>
+          <select class="sp-select" data-field="postSize">${createSelect(SEED.postSize)}</select>
+        </div>
+
+        <!-- Rails COUNT + all per-rail blocks on one row -->
+        <div class="sp-field col-12" data-rails-wrap>
+          <div class="sp-rail-row" data-rails-row>
+            <div class="sp-field" data-rail-count>
+              <label class="sp-label">Rails</label>
+              <select class="sp-select" data-field="railsCount">
+                <option value="2">2 Rail</option>
+                <option value="3">3 Rail</option>
+                <option value="4">4 Rail</option>
+              </select>
+            </div>
+            <!-- dynamic rail blocks injected here -->
+          </div>
+        </div>
+
+        <div class="sp-field col-3">
+          <label class="sp-label">Picket Size</label>
+          <select class="sp-select" data-field="picketSize">${createSelect(SEED.picketSize)}</select>
+        </div>
+        <div class="sp-field col-3">
+          <label class="sp-label">Picket Height (inches) — leave blank to auto-use fence height</label>
+          ${numberControl('picketHeight','e.g., 54')}
+        </div>
+        <div class="sp-field col-3">
+          <label class="sp-label">Puppy Pickets</label>
+          <select class="sp-select" data-field="puppy">${createSelect(SEED.puppy)}</select>
+        </div>
+        <div class="sp-field col-3">
+          <label class="sp-label">Painting</label>
+          <select class="sp-select" data-field="painting">
+            <option value="Paint Section">Paint Section</option>
+            <option value="Spot Paint Welds">Spot Paint Welds</option>
+            <option value="None">None</option>
+          </select>
+        </div>
+
+        <div class="sp-field col-3">
+          <label class="sp-label">Section Length (ft)</label>
+          ${numberControl('length','e.g., 48')}
+        </div>
+        <div class="sp-field col-3">
+          <label class="sp-label">LF Over Hardscape</label>
+          ${numberControl('hardscape','e.g., 12')}
+        </div>
+        <div class="sp-field col-3">
+          <label class="sp-label">LF to Trim</label>
+          ${numberControl('trim','e.g., 6')}
+        </div>
+
+        <div class="sp-field col-3">
+          <label class="sp-label"># Pickets to Replace</label>
+          ${numberControl('wiPickets','0')}
+        </div>
+
+        <div class="sp-field col-3">
+          <label class="sp-label"># 2x2 Posts to Replace</label>
+          ${numberControl('posts2x2','0')}
+        </div>
+        <div class="sp-field col-3">
+          <label class="sp-label"># 3x3 Posts to Replace</label>
+          ${numberControl('posts3x3','0')}
+        </div>
+        <div class="sp-field col-3">
+          <label class="sp-label"># 2x2 Posts to Realign</label>
+          ${numberControl('postsRealign2x2','0')}
+        </div>
+        <div class="sp-field col-3">
+          <label class="sp-label"># 3x3 Posts to Realign</label>
+          ${numberControl('postsRealign3x3','0')}
+        </div>
+
+        <!-- Walk Gates -->
+        <div class="sp-field col-3">
+          <label class="sp-label"># Walk Gates</label>
+          ${numberControl('walkGates','0')}
+        </div>
+        <div class="sp-field col-12" data-wg-wrap style="display:none">
+          <div class="sp-grid">
+            <div class="sp-field col-3">
+              <label class="sp-label"># Walk Gates to Realign</label>
+              ${numberControl('walkGatesRealign','0')}
+            </div>
+            <div class="sp-field col-3">
+              <label class="sp-label"># Walk Gate Hardware Replacements</label>
+              ${numberControl('walkGatesHardware','0')}
+            </div>
+            <div class="sp-field col-6" data-wg-hw-wrap style="display:none">
+              <div class="sp-grid">
+                <div class="sp-field col-6">
+                  <label class="sp-label">Latch Type</label>
+                  <select class="sp-select" data-field="walkLatch">${createSelect(GATE.latchTypes)}</select>
+                </div>
+                <div class="sp-field col-6">
+                  <label class="sp-label">Hinges</label>
+                  <select class="sp-select" data-field="walkHinges">${createSelect(GATE.hingeTypes)}</select>
+                </div>
+              </div>
+            </div>
+            <div class="sp-field col-3">
+              <label class="sp-label"># Walk Gates to Rebuild</label>
+              ${numberControl('walkGatesRebuild','0')}
+            </div>
+            <div class="sp-field col-12" data-wg-rebuild-wrap style="display:none">
+              <div class="sp-grid">
+                <div class="sp-field col-3">
+                  <label class="sp-label">Gate Frame Size</label>
+                  <select class="sp-select" data-field="walkRebuildFrame">${createSelect(SEED.railSize)}</select>
+                </div>
+                <div class="sp-field col-3">
+                  <label class="sp-label">Gate Picket Size</label>
+                  <select class="sp-select" data-field="walkRebuildPicket">${createSelect(SEED.picketSize)}</select>
+                </div>
+                <div class="sp-field col-3">
+                  <label class="sp-label">Latch Type</label>
+                  <select class="sp-select" data-field="walkRebuildLatch">${createSelect(GATE.latchTypes)}</select>
+                </div>
+                <div class="sp-field col-3">
+                  <label class="sp-label">Hinges</label>
+                  <select class="sp-select" data-field="walkRebuildHinges">${createSelect(GATE.hingeTypes)}</select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes (section-specific) - LAST -->
+        <div class="sp-field col-12">
+          <label class="sp-label">Notes (section-specific)</label>
+          <textarea class="sp-textarea" data-field="notes" placeholder="Any custom notes for this section..."></textarea>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function addSection(data={}){
+    syncStateFromDOM();
+    const id = uid();
+    state.sections.push({
+      id,
+      collapsed:false,
+      railsCount:2,
+      rails:[
+        {size:SEED.railSize[0], stacked:false, size2:SEED.railSize[0], patches:0, replacements:0},
+        {size:SEED.railSize[0], stacked:false, size2:SEED.railSize[0], patches:0, replacements:0},
+      ],
+      postSize: '2x2',
+      postsRealign2x2: 0,
+      postsRealign3x3: 0,
+      walkGates: 0,
+      walkGatesRealign: 0,
+      walkGatesHardware: 0,
+      walkGatesRebuild: 0,
+      walkLatch: (GATE.latchTypes && GATE.latchTypes[0]) || 'Gravity Latch',
+      walkHinges: (GATE.hingeTypes && GATE.hingeTypes[0]) || 'Door Hinges',
+      walkRebuildFrame: SEED.railSize[0],
+      walkRebuildPicket: SEED.picketSize[0],
+      walkRebuildLatch: (GATE.latchTypes && GATE.latchTypes[0]) || 'Gravity Latch',
+      walkRebuildHinges: (GATE.hingeTypes && GATE.hingeTypes[0]) || 'Door Hinges',
+      ...data
+    });
+    render();
+  }
+  function duplicateSection(id){
+    syncStateFromDOM();
+    const src = state.sections.find(s=>s.id===id);
+    if(!src) return;
+    const copy = JSON.parse(JSON.stringify(src));
+    copy.id = uid();
+    copy.collapsed = false;
+    state.sections.push(copy);
+    render();
+  }
+  function removeSection(id){
+    syncStateFromDOM();
+    state.sections = state.sections.filter(s=>s.id!==id);
+    render();
+  }
+
+  function readSectionFromDOM(card){
+    const id = card.getAttribute('data-id');
+    function val(field){
+      const el = card.querySelector(`[data-field="${field}"]`);
+      if(!el) return '';
+      if(el.classList.contains('sp-number')){
+        return parseInt(el.querySelector('input').value||'0',10) || 0;
+      }
+      if(el.type==='checkbox'){ return !!el.checked; }
+      if(el.tagName==='INPUT' || el.tagName==='TEXTAREA' || el.tagName==='SELECT') return el.value;
+      return '';
+    }
+
+    const railsCount = parseInt(val('railsCount') || '2', 10);
+    const rails = [];
+    for(let i=0;i<railsCount;i++){
+      rails.push({
+        size: val(`railSize_${i}`),
+        stacked: !!val(`railStacked_${i}`),
+        size2: val(`railSize2_${i}`),
+        patches: val(`railPatches_${i}`),
+        replacements: val(`railRepl_${i}`)
+      });
+    }
+
+    return {
+      id,
+      label: val('label').trim(),
+      style: val('style'),
+      height: val('height'),
+      postSize: val('postSize'),
+
+      railsCount,
+      rails,
+
+      // Back-compat mirrors (top rail)
+      railSize: rails[0]?.size || '',
+      railStacked: !!rails[0]?.stacked,
+      railSize2: rails[0]?.size2 || '',
+
+      picketSize: val('picketSize'),
+      picketHeight: val('picketHeight'),
+      puppy: val('puppy'),
+      painting: val('painting'),
+      length: val('length'),
+      hardscape: val('hardscape'),
+      trim: val('trim'),
+      wiPickets: val('wiPickets'),
+      posts2x2: val('posts2x2'),
+      posts3x3: val('posts3x3'),
+      postsRealign2x2: val('postsRealign2x2'),
+      postsRealign3x3: val('postsRealign3x3'),
+      walkGates: val('walkGates'),
+      walkGatesRealign: val('walkGatesRealign'),
+      walkGatesHardware: val('walkGatesHardware'),
+      walkGatesRebuild: val('walkGatesRebuild'),
+      walkLatch: val('walkLatch'),
+      walkHinges: val('walkHinges'),
+      walkRebuildFrame: val('walkRebuildFrame'),
+      walkRebuildPicket: val('walkRebuildPicket'),
+      walkRebuildLatch: val('walkRebuildLatch'),
+      walkRebuildHinges: val('walkRebuildHinges'),
+      notes: val('notes').trim()
+    };
+  }
+
+  function syncStateFromDOM(){
+    const cards = $$('.sp-card', sectionsEl);
+    if(!cards.length) return;
+    const newSections = cards.map(readSectionFromDOM);
+    newSections.forEach(ns=>{
+      const old = state.sections.find(s=>s.id===ns.id);
+      if(old){
+        if('collapsed' in old) ns.collapsed = old.collapsed;
+      }
+    });
+    state.sections = newSections;
+  }
+
+  function writeSectionToDOM(card, data){
+    function set(field, value){
+      const el = card.querySelector(`[data-field="${field}"]`);
+      if(!el) return;
+      if(el.classList.contains('sp-number')){
+        el.querySelector('input').value = value ?? '';
+      } else if(el.type==='checkbox'){
+        el.checked = Boolean(value);
+      } else if(el.tagName==='SELECT' || el.tagName==='INPUT' || el.tagName==='TEXTAREA'){
+        el.value = value ?? '';
+      }
+    }
+    set('label', data.label||'');
+    set('style', data.style||SEED.style[0]);
+    set('height', data.height||'4ft'); // default 4ft
+    set('postSize', data.postSize||'2x2');
+
+    // Rails
+    set('railsCount', data.railsCount || 2);
+    renderRailsControls(card, data);
+
+    set('picketSize', data.picketSize||SEED.picketSize[0]);
+    set('picketHeight', data.picketHeight||'');
+    set('puppy', data.puppy||SEED.puppy[0]);
+    set('painting', data.painting||'Paint Section');
+    set('length', data.length||'');
+    set('hardscape', data.hardscape||'');
+    set('trim', data.trim||'');
+    set('wiPickets', data.wiPickets||'');
+    set('posts2x2', data.posts2x2||'');
+    set('posts3x3', data.posts3x3||'');
+    set('postsRealign2x2', data.postsRealign2x2||'');
+    set('postsRealign3x3', data.postsRealign3x3||'');
+    set('walkGates', data.walkGates||'');
+    set('walkGatesRealign', data.walkGatesRealign||'');
+    set('walkGatesHardware', data.walkGatesHardware||'');
+    set('walkGatesRebuild', data.walkGatesRebuild||'');
+    set('walkLatch', data.walkLatch || (GATE.latchTypes && GATE.latchTypes[0]) || 'Gravity Latch');
+    set('walkHinges', data.walkHinges || (GATE.hingeTypes && GATE.hingeTypes[0]) || 'Door Hinges');
+    set('walkRebuildFrame', data.walkRebuildFrame || SEED.railSize[0]);
+    set('walkRebuildPicket', data.walkRebuildPicket || SEED.picketSize[0]);
+    set('walkRebuildLatch', data.walkRebuildLatch || (GATE.latchTypes && GATE.latchTypes[0]) || 'Gravity Latch');
+    set('walkRebuildHinges', data.walkRebuildHinges || (GATE.hingeTypes && GATE.hingeTypes[0]) || 'Door Hinges');
+    set('notes', data.notes||'');
+
+    // Collapsed state & toggle button sync
+    const toggleBtn = card.querySelector('.sp-toggle');
+    const isCollapsed = Boolean(data.collapsed);
+    card.classList.toggle('is-collapsed', isCollapsed);
+    if(toggleBtn){
+      toggleBtn.textContent = isCollapsed ? 'Expand' : 'Collapse';
+      toggleBtn.setAttribute('aria-expanded', (!isCollapsed).toString());
+    }
+  }
+
+  // ===== Rails helpers/handlers =====
+  function railLabels(count){
+    const n = parseInt(count||2,10);
+    if(n===4) return ['Top Rail','Second Rail','Third Rail','Bottom Rail'];
+    if(n===3) return ['Top Rail','Middle Rail','Bottom Rail'];
+    return ['Top Rail','Bottom Rail'];
+  }
+
+  function renderRailsControls(card, data){
+    const row  = card.querySelector('[data-rails-row]');
+    if(!row) return;
+
+    // Remove existing dynamic rail blocks
+    $$('[data-rail-block]', row).forEach(el=> el.remove());
+
+    const count = parseInt((data.railsCount!=null?data.railsCount:2),10);
+    const labels = railLabels(count);
+    const rails = Array.isArray(data.rails) ? data.rails : [];
+
+    // Rails count + N blocks on the same row (desktop)
+    row.style.setProperty('--rail-cols', `repeat(${count+1}, minmax(200px, 1fr))`);
+
+    labels.forEach((label,i)=>{
+      const block = document.createElement('div');
+      block.className = `sp-field`;
+      block.setAttribute('data-rail-block','');
+
+      const patchesHtml = numberControl('railPatches_'+i,'0');
+      const replHtml    = numberControl('railRepl_'+i,'0');
+
+      block.innerHTML = `
+        <label class="sp-label">${label} Size</label>
+        <select class="sp-select" data-field="railSize_${i}">${createSelect(SEED.railSize)}</select>
+        <div class="sp-row" style="margin-top:6px">
+          <label class="sp-row" style="gap:6px; align-items:center">
+            <input type="checkbox" data-field="railStacked_${i}" />
+            <span>Stacked</span>
+          </label>
+        </div>
+        <div class="sp-field" data-if="railStacked_${i}" style="display:none; margin-top:6px">
+          <label class="sp-label">Second ${label} Size</label>
+          <select class="sp-select" data-field="railSize2_${i}">${createSelect(SEED.railSize)}</select>
+        </div>
+        <div class="sp-field" style="margin-top:6px">
+          <label class="sp-label"># Rail Patches (${label})</label>
+          ${patchesHtml}
+        </div>
+        <div class="sp-field" style="margin-top:6px">
+          <label class="sp-label"># Full Rail Replacements (${label})</label>
+          ${replHtml}
+        </div>
+      `;
+      row.appendChild(block);
+
+      // Apply current values
+      const r = rails[i] || {};
+      const sizeEl    = card.querySelector(`[data-field="railSize_${i}"]`);
+      const stackEl   = card.querySelector(`[data-field="railStacked_${i}"]`);
+      const size2El   = card.querySelector(`[data-field="railSize2_${i}"]`);
+      const patchesBox= card.querySelector(`[data-field="railPatches_${i}"]`);
+      const replBox   = card.querySelector(`[data-field="railRepl_${i}"]`);
+      if(sizeEl) sizeEl.value = r.size || SEED.railSize[0];
+      if(stackEl) stackEl.checked = Boolean(r.stacked);
+      if(size2El) size2El.value = r.size2 || SEED.railSize[0];
+      if(patchesBox) patchesBox.querySelector('input').value = r.patches || 0;
+      if(replBox)    replBox.querySelector('input').value    = r.replacements || 0;
+      const cond = card.querySelector(`[data-if="railStacked_${i}"]`);
+      if(cond && stackEl) cond.style.display = stackEl.checked ? 'block' : 'none';
+    });
+  }
+
+  function attachRailsHandlers(card){
+    const countSel = card.querySelector('[data-field="railsCount"]');
+    if(countSel){
+      countSel.addEventListener('change', ()=>{
+        const secId = card.getAttribute('data-id');
+        const s = state.sections.find(x=>x.id===secId) || {};
+        const newCount = parseInt(countSel.value||'2',10);
+        s.railsCount = newCount;
+        if(!Array.isArray(s.rails)) s.rails = [];
+        const labels = railLabels(newCount);
+        s.rails = labels.map((_, i)=> s.rails[i] || { size: SEED.railSize[0], stacked:false, size2:SEED.railSize[0], patches:0, replacements:0});
+        renderRailsControls(card, s);
+        attachNumberHandlers(card); // rebind +/– for newly injected controls
+        persist();
+      });
+    }
+
+    // Toggle second-size visibility + persist on any rail change
+    card.addEventListener('change', (e)=>{
+      const t = e.target;
+      if(!t) return;
+      if(t.matches('input[data-field^="railStacked_"]')){
+        const key = t.getAttribute('data-field'); // e.g., railStacked_0
+        const cond = card.querySelector(`[data-if="${key}"]`);
+        if(cond) cond.style.display = t.checked ? 'block' : 'none';
+      }
+      persist();
+    });
+  }
+
+  function attachNumberHandlers(card){
+    $$(".sp-number", card).forEach(box=>{
+      const input = $('input', box);
+      $$(".sp-step", box).forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const dir = parseInt(btn.getAttribute('data-dir'),10);
+          const current = parseInt(input.value||'0',10) || 0;
+          const min = parseInt(input.getAttribute('min')||'0',10) || 0;
+          const next = Math.max(min, current + dir);
+          input.value = next;
+          updateWalkGateConditional(card);
+          persist();
+        });
+      });
+      input.addEventListener('change', ()=>{
+        const val = parseInt(input.value||'0',10) || 0;
+        const min = parseInt(input.getAttribute('min')||'0',10)||0;
+        input.value = Math.max(min, val);
+        updateWalkGateConditional(card);
+        persist();
+      });
+    });
+  }
+
+  function updateWalkGateConditional(card){
+    const getN = (f)=>{
+      const box = card.querySelector(`.sp-number[data-field="${f}"] input`);
+      return parseInt((box && box.value) || '0',10) || 0;
+    };
+    const wg = getN('walkGates');
+    const hw = getN('walkGatesHardware');
+    const rb = getN('walkGatesRebuild');
+    const wrap = card.querySelector('[data-wg-wrap]');
+    if(wrap){ wrap.style.display = wg>0 ? 'block' : 'none'; }
+    const hwWrap = card.querySelector('[data-wg-hw-wrap]');
+    if(hwWrap){ hwWrap.style.display = (wg>0 && hw>0) ? 'block' : 'none'; }
+    const rbWrap = card.querySelector('[data-wg-rebuild-wrap]');
+    if(rbWrap){ rbWrap.style.display = (wg>0 && rb>0) ? 'block' : 'none'; }
+  }
+
+  function render(){
+    const sectionsEl = document.getElementById('sp-sections');
+    sectionsEl.innerHTML = '';
+    state.sections.forEach((s, idx)=>{
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = sectionTemplate(s.id, idx);
+      const card = wrapper.firstElementChild;
+      sectionsEl.appendChild(card);
+      writeSectionToDOM(card, s);
+      attachNumberHandlers(card);
+      attachRailsHandlers(card);
+      updateWalkGateConditional(card);
+
+      // Dynamic section title with label value
+      const titleEl = $('.sp-card-title', card);
+      const labelInput = card.querySelector('[data-field="label"]');
+      function refreshTitle(){
+        const v = (labelInput.value||'').trim();
+        titleEl.textContent = `Section ${idx+1}${v ? ' - ' + v : ''}`;
+      }
+      refreshTitle();
+      labelInput.addEventListener('input', refreshTitle);
+
+      $('.sp-del', card).addEventListener('click', ()=>{ removeSection(s.id); persist(); });
+      $('.sp-dup', card).addEventListener('click', ()=>{ duplicateSection(s.id); persist(); });
+
+      // Collapsible handler
+      const toggleBtn = $('.sp-toggle', card);
+      if(toggleBtn){
+        toggleBtn.addEventListener('click', ()=>{
+          const next = !card.classList.contains('is-collapsed');
+          card.classList.toggle('is-collapsed', next);
+          toggleBtn.textContent = next ? 'Expand' : 'Collapse';
+          toggleBtn.setAttribute('aria-expanded', (!next).toString());
+          const sec = state.sections.find(x=>x.id===s.id);
+          if(sec){ sec.collapsed = next; }
+          persist();
+        });
+      }
+
+      // Track changes to inputs for autosave
+      $$('input, select, textarea', card).forEach(el=>{
+        el.addEventListener('input', ()=>{ persist(); });
+        el.addEventListener('change', ()=>{ persist(); });
+      });
+    });
+  }
+
+  function feetFromStr(h){
+    const m = String(h||'').match(/(\d+)/);
+    return m ? parseInt(m[1],10) : 0;
+  }
+  function styleFactor(v){
+    if(v === 'Flat Top') return 2;
+    if(v === 'Extended Picket') return 1.75;
+    return 1.5; // Extended Picket w/ Finials
+  }
+  function puppyAdj(v){
+    if(v === 'Puppy Pickets') return 0.25;
+    if(v === 'Puppy Pickets w/ Finials') return 0.5;
+    return 0;
+  }
+  function addMat(map, label, qty){
+    if(!qty || qty <= 0) return;
+    map[label] = (map[label]||0) + qty;
+  }
+
+  // ==== Pricing Helpers ====
+  function normalizeSize(txt){
+    return String(txt||'')
+      .replace(/\u201D|”/g,'"')
+      .replace(/\u00BC|¼/g,'1/4')
+      .replace(/\u00BD|½/g,'1/2')
+      .replace(/\u00BE|¾/g,'3/4')
+      .trim();
+  }
+
+  // Per-foot pricing (ft)
+  const PRICE_FT = {
+    '1/2"': 0.57,
+    '5/8"': 0.68,
+    '3/4"': 0.74,
+    '1"':   1.07,
+    '1x2"': 1.65,
+    '1 1/2"': 1.46,
+    '1 1/4"': 1.46,
+    '1 3/4"': 2.57,
+    '2x2"': 2.57,
+    '3x3"': 6.00,
+    // Aliases for rails list using width only
+    '2"': 2.57,
+    '3"': 6.00,
+    // Flat bar (requested)
+    'Flat Bar 1/4" x 1"': 0.58
+  };
+
+  // Fixed-price items (each)
+  const PRICE_MISC = {
+    'Gravity Latch': 5,
+    'Short Pool Latch': 80,
+    'Tall Pool Latch': 90,
+    'Single Lock Box': 5,
+    'Double Lock Box': 10,
+    'Pair of Door Hinges': 5,
+    'Pair of Bat Wing Hinges': 5,
+    'Pair of Auto Close Hinges': 50,
+    // Leave prefab visible but costed at $0 until priced
+    'prefab gate panel': 0
+  };
+
+  const PRICE = {
+    paintGallon: 50,
+    paintCan: 8,
+    concrete: 12,
+    post2x2: { 8:18, 9:24 }
+  };
+  function laborCost(crew){
+    if(crew<=0) return 0;
+    if(crew===1) return 350;
+    if(crew===2) return 600;
+    if(crew===3) return 800;
+    return 800 + (crew-3)*200;
+  }
+  function money(n){ return Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+  const RATES = {
+    netTarget:  0.20,
+    overhead:   0.08,
+    commission: 0.25,
+    cac:        500,
+    mcor:       0.20
+  };
+
+  function computeChargeRevenue(B1_directCosts){
+    const B1 = B1_directCosts;
+    const B4 = RATES.netTarget;
+    const B5 = RATES.overhead;
+    const B6 = RATES.commission;
+    const B7 = RATES.cac;
+    const B8 = RATES.mcor;
+
+    const denom1 = (1-B4)*(1-B6) - B8 - B5;
+    if (denom1 <= 0) return { revenue: NaN, mode: 'invalid' };
+
+    const candidateA = ((1-B4) * B1) / denom1;
+    const candidateB = (B1 + 100/B4) / (1 - B6);
+    const rev1 = Math.max(candidateA, candidateB);
+
+    if (B8 * rev1 <= B7){
+      return { revenue: rev1, mode: 'percent' };
+    } else {
+      const denom2 = (1-B4)*(1-B6) - B5;
+      if (denom2 <= 0) return { revenue: NaN, mode: 'invalid' };
+      const candidateC = (((1-B4) * B1) + B7) / denom2;
+      const candidateD = (B1 + 75/B4) / (1 - B6);
+      const rev2 = Math.max(candidateC, candidateD);
+      return { revenue: rev2, mode: 'capped' };
+    }
+  }
+
+  // Generate text outputs
+  function generateNotes(){
+    syncStateFromDOM();
+
+    const lines = [];
+    const totals = {
+      length:0, hardscape:0, trim:0,
+      wiPickets:0, wiPatches:0, wiRails:0,
+      posts2x2:0, posts3x3:0, postsRealign2x2:0, postsRealign3x3:0,
+      walkGates:0, walkRealign:0, walkHardware:0, walkRebuild:0
+    };
+
+    state.sections.forEach((s, idx)=>{
+      const title  = s.label ? `Section ${idx+1} - ${s.label}` : `Section ${idx+1}`;
+      const picket = s.picketHeight ? `${s.picketSize} (height ${s.picketHeight} in)` : `${s.picketSize}`;
+
+      const railsDesc = (Array.isArray(s.rails) && s.rails.length)
+        ? (()=>{
+            const labels = railLabels(s.railsCount || s.rails.length);
+            return s.rails.slice(0, s.railsCount || s.rails.length).map((r,i)=>
+              r && r.stacked
+                ? `${labels[i]}: ${r.size} + ${r.size2} (stacked)`
+                : `${labels[i]}: ${r.size}`
+            ).join('; ');
+          })()
+        : (s.railStacked ? `${s.railSize} + ${s.railSize2} (stacked)` : `${s.railSize}`);
+
+      const sectionPatchTotal = (s.rails||[]).slice(0, s.railsCount||0)
+        .reduce((acc,r)=> acc + (parseInt(r?.patches||0,10)||0), 0);
+      const sectionReplTotal = (s.rails||[]).slice(0, s.railsCount||0)
+        .reduce((acc,r)=> acc + (parseInt(r?.replacements||0,10)||0), 0);
+
+      lines.push(`${title}`);
+      lines.push(`- Style: ${s.style}`);
+      lines.push(`- Height: ${s.height}`);
+      lines.push(`- Rails: ${railsDesc}`);
+      lines.push(`- Picket: ${picket}`);
+      lines.push(`- Puppy Pickets: ${s.puppy}`);
+      lines.push(`- Painting: ${s.painting || 'Paint Section'}`);
+
+      lines.push(`- Length: ${numOrDash(s.length)} ft`);
+      if (s.hardscape > 0) lines.push(`- Over hardscape: ${s.hardscape} lf`);
+      if (s.trim > 0)      lines.push(`- Trim: ${s.trim} lf`);
+
+      const i = (v)=> (parseInt(v||0,10) || 0);
+      lines.push(`- Repairs:`);
+      lines.push(`  - Pickets to replace: ${i(s.wiPickets)}`);
+      lines.push(`  - Rail patches: ${sectionPatchTotal}`);
+      lines.push(`  - Full rail replacements: ${sectionReplTotal}`);
+      lines.push(`  - 2x2 posts to replace: ${i(s.posts2x2)}`);
+      lines.push(`  - 3x3 posts to replace: ${i(s.posts3x3)}`);
+      lines.push(`  - 2x2 posts to realign: ${i(s.postsRealign2x2)}`);
+      lines.push(`  - 3x3 posts to realign: ${i(s.postsRealign3x3)}`);
+
+      // Walk gate details per section (new)
+      const wg  = i(s.walkGates);
+      const wgr = i(s.walkGatesRealign);
+      const wgh = i(s.walkGatesHardware);
+      const wgb = i(s.walkGatesRebuild);
+      if (wg || wgr || wgh || wgb){
+        lines.push(`- Walk gates: ${wg}`);
+        if (wgr) lines.push(`  - Realign: ${wgr}`);
+        if (wgh) lines.push(`  - Hardware replacements: ${wgh} (Latch: ${s.walkLatch||'-'}, Hinges: ${s.walkHinges||'-'})`);
+        if (wgb) lines.push(`  - Rebuild: ${wgb} (Frame: ${s.walkRebuildFrame}, Pickets: ${s.walkRebuildPicket}, Latch: ${s.walkRebuildLatch}, Hinges: ${s.walkRebuildHinges})`);
+      }
+
+      if (s.notes) lines.push(`- Notes: ${s.notes}`);
+      lines.push('');
+
+      totals.length       += i(s.length);
+      totals.hardscape    += i(s.hardscape);
+      totals.trim         += i(s.trim);
+      totals.wiPickets    += i(s.wiPickets);
+      totals.wiPatches    += sectionPatchTotal;
+      totals.wiRails      += sectionReplTotal;
+      totals.posts2x2     += i(s.posts2x2);
+      totals.posts3x3     += i(s.posts3x3);
+      totals.postsRealign2x2 += i(s.postsRealign2x2);
+      totals.postsRealign3x3 += i(s.postsRealign3x3);
+      totals.walkGates   += wg;
+      totals.walkRealign += wgr;
+      totals.walkHardware+= wgh;
+      totals.walkRebuild += wgb;
+    });
+
+    if (state.sections.length){
+      const t = totals;
+      lines.push(`TOTALS`);
+      lines.push(`- Sections: ${state.sections.length}`);
+      lines.push(`- Length: ${t.length} ft`);
+      if (t.hardscape)     lines.push(`- Over hardscape: ${t.hardscape} lf`);
+      if (t.trim)          lines.push(`- Trim: ${t.trim} lf`);
+      if (t.wiPickets)     lines.push(`- Pickets to replace: ${t.wiPickets}`);
+      if (t.wiPatches)     lines.push(`- Rail patches: ${t.wiPatches}`);
+      if (t.wiRails)       lines.push(`- Full rail replacements: ${t.wiRails}`);
+      if (t.posts2x2)      lines.push(`- 2x2 posts: ${t.posts2x2}`);
+      if (t.posts3x3)      lines.push(`- 3x3 posts: ${t.posts3x3}`);
+      if (t.postsRealign2x2) lines.push(`- 2x2 posts to realign: ${t.postsRealign2x2}`);
+      if (t.postsRealign3x3) lines.push(`- 3x3 posts to realign: ${t.postsRealign3x3}`);
+      if (t.walkGates)     lines.push(`- Walk gates: ${t.walkGates}`);
+      if (t.walkRealign)   lines.push(`- Walk gates to realign: ${t.walkRealign}`);
+      if (t.walkHardware)  lines.push(`- Walk gate hardware replacements: ${t.walkHardware}`);
+      if (t.walkRebuild)   lines.push(`- Walk gates to rebuild: ${t.walkRebuild}`);
+    }
+
+    // ==== Sub notes & materials aggregation ====
+    let paintLenTotal = 0;
+    let paintGallons = 0;
+    let paintCans = 0;
+
+    let manHours = (totals.wiPickets*12 + totals.wiPatches*20 + totals.wiRails*30 + totals.posts2x2*60 + totals.posts3x3*90 + (totals.postsRealign2x2 + totals.postsRealign3x3)*30)/60;
+    manHours += totals.walkRealign * 1 + totals.walkHardware * 1 + totals.walkRebuild * 3;
+
+    const lengthHours = state.sections.reduce((acc, s)=>{
+      if (s.painting !== 'Paint Section') return acc;
+      const len = parseInt(s.length||0,10) || 0;
+      if(!len) return acc;
+      const denom = styleFactor(s.style) - puppyAdj(s.puppy);
+      const hours = (len/8) / Math.max(1, denom);
+      return acc + hours;
+    }, 0);
+    const paintHardscapeLen = state.sections.reduce((acc,s)=> acc + ((s.painting==='Paint Section') ? (parseInt(s.hardscape||0,10)||0) : 0), 0);
+    const paintTrimLen = state.sections.reduce((acc,s)=> acc + ((s.painting==='Paint Section') ? (parseInt(s.trim||0,10)||0) : 0), 0);
+
+    manHours += lengthHours + (paintHardscapeLen/20) + (paintTrimLen/50);
+
+    const crew = Math.ceil(manHours / 8);
+    const durationStr = crew > 0 ? `1 day for ${crew} ${crew===1?'guy':'guys'}` : 'TBD';
+
+    const materials = {};
+
+    // 2x2 posts (height + 3ft, min 8ft)
+    const posts2x2ByLenCalc = {};
+    state.sections.forEach(s=>{
+      const hft = feetFromStr(s.height);
+      const postLen = Math.max(8, hft + 3);
+      const n = parseInt(s.posts2x2||0,10) || 0;
+      if(n>0){ posts2x2ByLenCalc[postLen] = (posts2x2ByLenCalc[postLen]||0) + n; }
+    });
+    Object.keys(posts2x2ByLenCalc).sort((a,b)=>parseInt(a,10)-parseInt(b,10)).forEach(len=>{
+      addMat(materials, `2x2x${len} posts`, posts2x2ByLenCalc[len]);
+    });
+
+    // 3x3 posts as 12ft raw (aggregate)
+    const posts3x3ByLenCalc = {};
+    state.sections.forEach(s=>{
+      const count = parseInt(s.posts3x3||0,10) || 0;
+      if(!count) return;
+      const L = feetFromStr(s.height) + 3;
+      const perStick = Math.max(1, Math.floor(12 / Math.max(1, L)));
+      const sticks = Math.ceil(count / perStick);
+      posts3x3ByLenCalc[L] = (posts3x3ByLenCalc[L]||0) + sticks;
+    });
+    let raw3x3Total = 0;
+    Object.values(posts3x3ByLenCalc).forEach(v=>{ raw3x3Total += v; });
+    if(raw3x3Total>0){ addMat(materials, '3x3x12 raw steel', raw3x3Total); }
+
+    // Concrete bags
+    const concreteBagsCalc = totals.posts2x2 + totals.posts3x3 + Math.ceil((totals.postsRealign2x2 + totals.postsRealign3x3) * 0.5) + totals.walkRealign;
+
+    // Gate hardware materials
+    const latchCounts = {};
+    const hingeCounts = {};
+    state.sections.forEach(s=>{
+      const hw = parseInt(s.walkGatesHardware||0,10) || 0;
+      const rb = parseInt(s.walkGatesRebuild||0,10) || 0;
+      if(hw>0){
+        if(s.walkLatch) latchCounts[s.walkLatch] = (latchCounts[s.walkLatch]||0) + hw;
+        if(s.walkHinges) hingeCounts[s.walkHinges] = (hingeCounts[s.walkHinges]||0) + hw;
+      }
+      if(rb>0){
+        if(s.walkRebuildLatch) latchCounts[s.walkRebuildLatch] = (latchCounts[s.walkRebuildLatch]||0) + rb;
+        if(s.walkRebuildHinges) hingeCounts[s.walkRebuildHinges] = (hingeCounts[s.walkRebuildHinges]||0) + rb;
+
+        const frame = s.walkRebuildFrame || '';
+        const pick  = s.walkRebuildPicket || '';
+        const fN = normalizeSize(frame);
+        const pN = normalizeSize(pick);
+        if(fN === '1"' && (pN === '1/2"' || pN === '5/8"')){
+          addMat(materials, 'prefab gate panel', rb);
+          addMat(materials, `12ft rail sticks (${frame})`, rb * 2);
+        } else {
+          addMat(materials, `12ft rail sticks (${frame})`, rb * 2);
+          addMat(materials, `12ft picket sticks (${pick})`, rb * 2);
+        }
+      }
+    });
+
+    // Add latches
+    Object.keys(latchCounts).forEach(k=> addMat(materials, k, latchCounts[k]));
+    // Add hinges with "Pair of ..." labeling
+    const hingeLabel = (k)=> k==='Door Hinges' ? 'Pair of Door Hinges'
+                            : k==='Bat Wing Hinges' ? 'Pair of Bat Wing Hinges'
+                            : k==='Auto Close Hinges' ? 'Pair of Auto Close Hinges'
+                            : k;
+    Object.keys(hingeCounts).forEach(k=> addMat(materials, hingeLabel(k), hingeCounts[k]));
+
+    addMat(materials, 'Maximizer bags of concrete', concreteBagsCalc);
+
+    // Picket sticks (by size only)
+    const picketBySizeCalc = {};
+    state.sections.forEach(s=>{
+      const need = parseInt(s.wiPickets||0,10) || 0;
+      if(!need) return;
+      let ph = parseInt(s.picketHeight||0,10) || 0; // inches
+      if (ph <= 0) {
+        const hf = feetFromStr(s.height);
+        if (hf > 0) ph = hf * 12;
+      }
+      if (ph <= 0) ph = 54;
+
+      const perStick = Math.max(1, Math.floor(144 / ph));
+      const sticks = Math.ceil(need / perStick);
+      const size = s.picketSize;
+      picketBySizeCalc[size] = (picketBySizeCalc[size]||0) + sticks;
+    });
+    Object.entries(picketBySizeCalc).forEach(([size, qty])=>{
+      addMat(materials, `12ft picket sticks (${size})`, qty);
+    });
+
+    // Rails: patches & replacements → sticks
+    const railStickBySizeMat = {};
+    const patchBySizeMat = {};
+    const replBySizeMat = {};
+    function inc(map, key, delta){ if(!key) return; map[key] = (map[key]||0) + (delta||0); }
+
+    state.sections.forEach(s=>{
+      const rCount = s.railsCount || (s.rails||[]).length || 0;
+      for(let i=0;i<rCount;i++){
+        const r = (s.rails||[])[i] || {};
+        const p = parseInt(r.patches||0,10) || 0;
+        const rep = parseInt(r.replacements||0,10) || 0;
+        if(p>0){
+          inc(patchBySizeMat, r.size, p);
+          if(r.stacked) inc(patchBySizeMat, r.size2, p);
+        }
+        if(rep>0){
+          inc(replBySizeMat, r.size, rep);
+          if(r.stacked) inc(replBySizeMat, r.size2, rep);
+        }
+      }
+    });
+
+    Object.entries(replBySizeMat).forEach(([size, rep])=>{
+      if(rep>0) inc(railStickBySizeMat, size, rep);
+    });
+
+    Object.entries(patchBySizeMat).forEach(([size, pcount])=>{
+      const credits = replBySizeMat[size] || 0;
+      const remaining = Math.max(0, (pcount||0) - credits);
+      if(remaining>0){
+        inc(railStickBySizeMat, size, Math.ceil(remaining/6));
+      }
+    });
+
+    Object.keys(railStickBySizeMat).forEach(size=>{
+      addMat(materials, `12ft rail sticks (${size})`, railStickBySizeMat[size]);
+    });
+
+    // Paint materials (from total section length only)
+    paintLenTotal = 0;
+    paintGallons  = 0;
+    paintCans     = 0;
+
+    let totalLenPaint = 0;
+    let totalLenSpot  = 0;
+
+    state.sections.forEach(s=>{
+      const len = (parseInt(s.length||0,10) || 0);
+      if(!len) return;
+      if (s.painting === 'Paint Section') totalLenPaint += len;
+      else if (s.painting === 'Spot Paint Welds') totalLenSpot += len;
+    });
+
+    paintLenTotal = totalLenPaint;
+    paintGallons  = Math.ceil(totalLenPaint / 100);
+    if (paintGallons > 0) paintCans += Math.ceil(paintGallons * 0.5);
+    if (totalLenSpot > 0) {
+      const unitsSpot = Math.ceil(totalLenSpot / 100);
+      paintCans += Math.max(1, Math.ceil(unitsSpot * 0.5));
+    }
+
+    if (paintGallons > 0) addMat(materials, 'gallons of gloss black paint', paintGallons);
+    if (paintCans > 0)    addMat(materials, 'spray cans (gloss black)', paintCans);
+
+    // ===== Costing =====
+    let unpriced = false;
+    const matBreak = [];
+    let costMaterials = 0;
+
+    // Misc (latches/hinges/prefab)
+    Object.entries(materials).forEach(([label, qty])=>{
+      if(Object.prototype.hasOwnProperty.call(PRICE_MISC, label)){
+        const unit = PRICE_MISC[label] || 0;
+        const c = qty * unit;
+        costMaterials += c;
+        matBreak.push(`  - ${label}: ${qty} x $${money(unit)} = $${money(c)}`);
+      }
+    });
+
+    if(paintGallons>0){
+      const c = paintGallons * PRICE.paintGallon;
+      costMaterials += c;
+      matBreak.push('  - Paint (gallons): '+paintGallons+' x $'+money(PRICE.paintGallon)+' = $'+money(c));
+    }
+    if(paintCans>0){
+      const c = paintCans * PRICE.paintCan;
+      costMaterials += c;
+      matBreak.push('  - Paint (spray cans): '+paintCans+' x $'+money(PRICE.paintCan)+' = $'+money(c));
+    }
+
+    const concreteBagsMat = (materials['Maximizer bags of concrete']||0);
+    if(concreteBagsMat>0){
+      const c = concreteBagsMat * PRICE.concrete;
+      costMaterials += c;
+      matBreak.push('  - Concrete (Maximizer): '+concreteBagsMat+' x $'+money(PRICE.concrete)+' = $'+money(c));
+    }
+
+    const posts2x2CountsCost = {};
+    Object.keys(materials).forEach(k=>{
+      const m = k.match(/^2x2x(\d+)\s+posts$/);
+      if(m){ posts2x2CountsCost[m[1]] = (posts2x2CountsCost[m[1]]||0) + materials[k]; }
+    });
+    Object.entries(posts2x2CountsCost).forEach(([lenStr, qty])=>{
+      const len = parseInt(lenStr,10) || 0;
+      let unit = PRICE.post2x2[len];
+      if(unit==null){
+        const perFt = PRICE_FT['2x2"']||0;
+        unit = perFt * len;
+      }
+      const c = qty * (unit||0);
+      if((unit||0)===0) unpriced = true;
+      costMaterials += c;
+      matBreak.push('  - 2x2x'+len+' posts: '+qty+' x $'+money(unit)+' = $'+money(c));
+    });
+
+    const raw3x3Count = Object.keys(materials).reduce((acc,k)=>{
+      const m = k.match(/^3x3x12 raw steel/);
+      return acc + (m ? materials[k] : 0);
+    },0);
+    if(raw3x3Count>0){
+      const unit3x3 = 12 * (PRICE_FT['3x3"']||0);
+      const c = raw3x3Count * unit3x3;
+      costMaterials += c;
+      matBreak.push('  - 3x3 raw steel sticks: '+raw3x3Count+' x 12ft x $'+money(PRICE_FT['3x3"']||0)+'/ft = $'+money(c));
+    }
+
+    const picketLine = /^12ft picket sticks \((.+?)\)/;
+    Object.entries(materials).forEach(([label, qty])=>{
+      const m = label.match(picketLine);
+      if(!m) return;
+      const s = normalizeSize(m[1]);
+      const perFt = PRICE_FT[s]||0;
+      const c = qty * 12 * perFt;
+      if(perFt===0) unpriced = true;
+      costMaterials += c;
+      matBreak.push('  - 12ft picket sticks '+s+': '+qty+' x 12ft x $'+money(perFt)+'/ft = $'+money(c));
+    });
+
+    const railLine = /^12ft rail sticks \((.+?)\)/;
+    Object.entries(materials).forEach(([label, qty])=>{
+      const m = label.match(railLine);
+      if(!m) return;
+      const s = normalizeSize(m[1]);
+      const perFt = PRICE_FT[s]||0;
+      const c = qty * 12 * perFt;
+      if(perFt===0) unpriced = true;
+      costMaterials += c;
+      matBreak.push('  - 12ft rail sticks '+s+': '+qty+' x 12ft x $'+money(perFt)+'/ft = $'+money(c));
+    });
+
+    const crewCost = laborCost(crew);
+    const directCosts = crewCost + costMaterials;
+    const revenueRes = computeChargeRevenue(directCosts);
+    const revenue = revenueRes && isFinite(revenueRes.revenue) ? revenueRes.revenue : NaN;
+    const commissionFormula$ = isFinite(revenue)
+      ? (RATES.commission * (((1 - RATES.overhead) * revenue) - directCosts))
+      : NaN;
+
+    const sub = [];
+    sub.push('JOB DURATION');
+    sub.push('- '+durationStr);
+    sub.push('');
+    sub.push('MATERIALS');
+    Object.keys(materials).sort((a,b)=>a.localeCompare(b)).forEach(label=>{
+      sub.push('- '+materials[label]+'x '+label);
+    });
+
+    // --- GO BAG (do NOT include in costs) ---
+    sub.push('');
+    sub.push('GO BAG (bring in addition to above)');
+
+    const postSizesSet = new Set(state.sections.map(s => (s.postSize||'').trim()).filter(Boolean));
+    const maxHft = Math.max(0, ...state.sections.map(s => feetFromStr(s.height)));
+    const goPostLen = Math.max(8, (maxHft>0 ? maxHft + 3 : 8));
+    if(postSizesSet.size === 0){ postSizesSet.add('2x2'); }
+    postSizesSet.forEach(ps => {
+      if(ps === '2x2'){
+        sub.push(`- 3x 2x2x${goPostLen} posts`);
+      } else if(ps === '3x3'){
+        sub.push(`- 3x 3x3x12 raw steel (for posts)`);
+      } else {
+        sub.push(`- 3x ${ps} posts`);
+      }
+    });
+
+    sub.push(`- 3x Maximizer bags of concrete`);
+    sub.push('- 1x gallon of gloss black paint');
+    sub.push('- 1x spray can (gloss black)');
+
+    const railSizesSet = new Set();
+    state.sections.forEach(s => {
+      const rCount = s.railsCount || (s.rails||[]).length || 0;
+      for(let i=0;i<rCount;i++){
+        const r = (s.rails||[])[i] || {};
+        if(r && r.size) railSizesSet.add(r.size);
+        if(r && r.stacked && r.size2) railSizesSet.add(r.size2);
+      }
+    });
+    const picketSizesSet = new Set(state.sections.map(s => s.picketSize).filter(Boolean));
+
+    railSizesSet.forEach(size => sub.push(`- 3x 12ft rail sticks (${size})`));
+    picketSizesSet.forEach(size => sub.push(`- 3x 12ft picket sticks (${size})`));
+    // --- end GO BAG ---
+
+    sub.push('');
+    sub.push('SCOPE (Totals)');
+    if (totals.wiPickets > 0)       sub.push('- Pickets to replace: '+totals.wiPickets);
+    if (totals.wiPatches > 0)       sub.push('- Rail patches: '+totals.wiPatches);
+    if (totals.wiRails > 0)         sub.push('- Full rail replacements: '+totals.wiRails);
+    if (totals.posts2x2 > 0)        sub.push('- 2x2 posts to replace: '+totals.posts2x2);
+    if (totals.posts3x3 > 0)        sub.push('- 3x3 posts to replace: '+totals.posts3x3);
+    if (totals.postsRealign2x2 > 0) sub.push('- 2x2 posts to realign: '+totals.postsRealign2x2);
+    if (totals.postsRealign3x3 > 0) sub.push('- 3x3 posts to realign: '+totals.postsRealign3x3);
+    if (totals.walkGates > 0)       sub.push('- Walk gates: '+totals.walkGates);
+    if (totals.walkRealign > 0)     sub.push('- Walk gates to realign: '+totals.walkRealign);
+    if (totals.walkHardware > 0)    sub.push('- Walk gate hardware replacements: '+totals.walkHardware);
+    if (totals.walkRebuild > 0)     sub.push('- Walk gates to rebuild: '+totals.walkRebuild);
+    if (paintLenTotal > 0)          sub.push('- Scrape off loose rust and debris, then hand paint '+paintLenTotal+' ft of fence');
+
+    if (notesSubEl) { notesSubEl.value = sub.join('\n'); }
+
+    const cost = [];
+    cost.push('ESTIMATED COST');
+    cost.push('- Labor: $'+money(crewCost)+' ('+crew+' '+(crew===1?'guy':'guys')+')');
+    cost.push('- Materials: $'+money(costMaterials));
+    matBreak.forEach(line=> cost.push(line));
+    cost.push('- Total: $'+money(crewCost + costMaterials));
+    // No generic “unpriced” warning anymore unless a true gap remains
+    if (unpriced) cost.push('  - Note: Some sizes have no price mapping and were counted as $0.');
+
+    cost.push('');
+    cost.push('WHAT TO CHARGE');
+    if (!isFinite(revenue)){
+      cost.push('⚠️ Pricing inputs produce an invalid result. Check RATES (commission, net target, overhead, MCOR, CAC).');
+    } else {
+      cost.push('- Price to charge: $'+money(revenue));
+      cost.push('- Commission (per formula): $'+money(commissionFormula$));
+    }
+
+    const idxTotals = lines.indexOf('TOTALS');
+    const outLines = (idxTotals >= 0)
+      ? [...lines.slice(idxTotals), '', ...lines.slice(0, idxTotals)]
+      : lines;
+    const fullNotes = [...outLines, '', ...cost];
+
+    notesEl.value = fullNotes.join('\n');
+    outputEl.style.display = 'grid';
+    scrollTo(outputEl);
+    persist();
+  }
+
+  function numOrDash(v){ const n = parseInt(v,10); return isNaN(n)?'—':n; }
+  function scrollTo(el){ el.scrollIntoView({behavior:'smooth', block:'start'}); }
+
+  function copyNotes(){
+    notesEl.select();
+    document.execCommand('copy');
+    const btn = document.getElementById('sp-copy');
+    const old = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(()=>btn.textContent=old, 1200);
+  }
+
+  function copySubNotes(){
+    if(!notesSubEl) return;
+    notesSubEl.select();
+    document.execCommand('copy');
+    const btn = document.getElementById('sp-copy-sub');
+    const old = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(()=>btn.textContent = old, 1200);
+  }
+
+  const KEY = 'sp_scope_v1';
+  function persist(){
+    try{ syncStateFromDOM(); localStorage.setItem(KEY, JSON.stringify(state.sections)); }catch(e){/* ignore */}
+  }
+  function restore(){
+    try{
+      const raw = localStorage.getItem(KEY);
+      if(!raw) return false;
+      const arr = JSON.parse(raw);
+      if(!Array.isArray(arr) || !arr.length) return false;
+
+      state.sections = arr.map(s=>{
+        const railsCount = s.railsCount || (Array.isArray(s.rails) ? s.rails.length : 2);
+        const rails = (s.rails||[]).map(r=>({
+          size:r.size,
+          stacked:!!r.stacked,
+          size2:r.size2,
+          patches:parseInt(r.patches||0,10)||0,
+          replacements:parseInt(r.replacements||0,10)||0
+        }));
+
+        if((parseInt(s.wiRails||0,10)||0) > 0 && rails.every(r=> (parseInt(r.replacements||0,10)||0)===0)){
+          if(rails[0]) rails[0].replacements = parseInt(s.wiRails,10) || 0;
+        }
+
+        return {
+          ...s,
+          id: uid(),
+          railsCount,
+          rails,
+          postSize: s.postSize || '2x2',
+          postsRealign2x2: parseInt(s.postsRealign2x2 || s.postsRealign || 0, 10) || 0,
+          postsRealign3x3: parseInt(s.postsRealign3x3 || 0, 10) || 0,
+          walkGates: parseInt(s.walkGates || 0,10) || 0,
+          walkGatesRealign: parseInt(s.walkGatesRealign || 0,10) || 0,
+          walkGatesHardware: parseInt(s.walkGatesHardware || 0,10) || 0,
+          walkGatesRebuild: parseInt(s.walkGatesRebuild || 0,10) || 0,
+          walkLatch: s.walkLatch || (GATE.latchTypes && GATE.latchTypes[0]) || 'Gravity Latch',
+          walkHinges: s.walkHinges || (GATE.hingeTypes && GATE.hingeTypes[0]) || 'Door Hinges',
+          walkRebuildFrame: s.walkRebuildFrame || SEED.railSize[0],
+          walkRebuildPicket: s.walkRebuildPicket || SEED.picketSize[0],
+          walkRebuildLatch: s.walkRebuildLatch || (GATE.latchTypes && GATE.latchTypes[0]) || 'Gravity Latch',
+          walkRebuildHinges: s.walkRebuildHinges || (GATE.hingeTypes && GATE.hingeTypes[0]) || 'Door Hinges',
+        };
+      });
+
+      render();
+      return true;
+    }catch(e){ return false; }
+  }
+  function resetAll(){
+    if(!confirm('Clear all sections?')) return;
+    state.sections = [];
+    localStorage.removeItem(KEY);
+    render();
+    outputEl.style.display='none';
+  }
+
+  document.getElementById('sp-add').addEventListener('click', ()=>{ addSection(); persist(); });
+  document.getElementById('sp-complete').addEventListener('click', generateNotes);
+  document.getElementById('sp-copy').addEventListener('click', copyNotes);
+  document.getElementById('sp-copy-sub').addEventListener('click', copySubNotes);
+  document.getElementById('sp-reset').addEventListener('click', resetAll);
+
+  if(!restore()){ addSection(); }
+})();
+</script>
