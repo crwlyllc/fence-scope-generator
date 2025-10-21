@@ -105,7 +105,7 @@
       <div class="sp-actions">
         <button class="sp-btn ghost" id="sp-reset" type="button">Reset</button>
         <button class="sp-btn" id="sp-add" type="button">+ Add Section</button>
-        <button class="sp-btn primary" id="sp-complete" type="button">Complete → Generate Notes</button>
+        <button class="="sp-btn primary" id="sp-complete" type="button">Complete → Generate Notes</button>
       </div>
     </div>
 
@@ -152,10 +152,8 @@ document.addEventListener('DOMContentLoaded', function(){
     var href = 'https://cdn.prod.website-files.com/6594928d27a68dfdb6474334/66e8a1e05c9e00dea43e9a1b_Strong-Perimeter-Logo-32.jpg';
     var head = document.head || document.getElementsByTagName('head')[0];
     if (!head) return;
-    // Remove any existing icons
     var olds = head.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]');
     olds.forEach(function(el){ el.parentNode.removeChild(el); });
-    // Add new favicon
     var link = document.createElement('link');
     link.rel = 'icon';
     link.type = 'image/jpeg';
@@ -174,6 +172,9 @@ document.addEventListener('DOMContentLoaded', function(){
     picketSize:["1/2\u201D","5/8\u201D","3/4\u201D","1\u201D"],
     postSize:["2x2","3x3"],
     puppy:["None","Puppy Pickets","Puppy Pickets w/ Finials","Puppy Pickets Full Height","Puppy Pickets Full Height w/ Finials"],
+    // NEW: finials
+    finialStyles:["Quad Star","Banana Split","Boy Scout","Ball"],
+    finialMaterials:["Cast Iron","Aluminum","Plastic"],
   };
 
   const GATE = {
@@ -200,7 +201,6 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function uid(){ return 'sec_' + Math.random().toString(36).slice(2,9); }
 
-  // Safe HTML escaping for option rendering
   function escapeHtml(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function escapeAttr(t){ return escapeHtml(t).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
   function createSelect(options){
@@ -257,7 +257,6 @@ document.addEventListener('DOMContentLoaded', function(){
                 <option value="4">4 Rail</option>
               </select>
             </div>
-            <!-- dynamic rail blocks injected here -->
           </div>
         </div>
 
@@ -319,6 +318,16 @@ document.addEventListener('DOMContentLoaded', function(){
         <div class="sp-field col-3">
           <label class="sp-label"># 3x3 Posts to Realign</label>
           ${numberControl('postsRealign3x3','0')}
+        </div>
+
+        <!-- NEW: Finial replacements -->
+        <div class="sp-field col-12">
+          <label class="sp-label">Finial Replacements</label>
+          <div data-finials></div>
+          <div class="sp-row" style="margin-top:6px">
+            <button class="sp-btn ghost" type="button" data-finial-add>+ Add Finial Group</button>
+            <span class="sp-hint">Each replacement adds ~30 seconds of labor. Unit cost: $1.25.</span>
+          </div>
         </div>
 
         <!-- Walk Gates (existing) -->
@@ -456,6 +465,9 @@ document.addEventListener('DOMContentLoaded', function(){
       walkAddLatch: (GATE.latchTypes && GATE.latchTypes[0]) || 'Gravity Latch',
       walkAddHinges: (GATE.hingeTypes && GATE.hingeTypes[0]) || 'Door Hinges',
 
+      // NEW: Finials
+      finials: [],
+
       ...data
     });
     render();
@@ -501,6 +513,20 @@ document.addEventListener('DOMContentLoaded', function(){
       });
     }
 
+    // NEW: Finials (dynamic rows)
+    const finials = [];
+    const finCont = card.querySelector('[data-finials]');
+    if (finCont){
+      const rows = Array.from(finCont.querySelectorAll('[data-finial-row]'));
+      rows.forEach(row => {
+        const qty = parseInt((row.querySelector('[data-finial-qty] input')?.value)||'0',10) || 0;
+        const style = (row.querySelector('[data-finial-style]')?.value) || (SEED.finialStyles && SEED.finialStyles[0]);
+        const material = (row.querySelector('[data-finial-material]')?.value) || (SEED.finialMaterials && SEED.finialMaterials[0]);
+        const picketSize = (row.querySelector('[data-finial-picket]')?.value) || (SEED.picketSize && SEED.picketSize[0]);
+        if(qty>0){ finials.push({ qty, style, material, picketSize }); }
+      });
+    }
+
     return {
       id,
       label: val('label').trim(),
@@ -511,7 +537,6 @@ document.addEventListener('DOMContentLoaded', function(){
       railsCount,
       rails,
 
-      // Back-compat mirrors (top rail)
       railSize: rails[0]?.size || '',
       railStacked: !!rails[0]?.stacked,
       railSize2: rails[0]?.size2 || '',
@@ -540,7 +565,7 @@ document.addEventListener('DOMContentLoaded', function(){
       walkRebuildLatch: val('walkRebuildLatch'),
       walkRebuildHinges: val('walkRebuildHinges'),
 
-      // NEW: Add Walk Gate fields
+      // NEW
       walkGatesAdd: val('walkGatesAdd'),
       walkAddMethod: val('walkAddMethod'),
       walkAddPostSize: val('walkAddPostSize'),
@@ -548,6 +573,9 @@ document.addEventListener('DOMContentLoaded', function(){
       walkAddPicketSize: val('walkAddPicketSize'),
       walkAddLatch: val('walkAddLatch'),
       walkAddHinges: val('walkAddHinges'),
+
+      // NEW: finials
+      finials,
 
       notes: val('notes').trim()
     };
@@ -580,10 +608,9 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     set('label', data.label||'');
     set('style', data.style||SEED.style[0]);
-    set('height', data.height||'4ft'); // default 4ft
+    set('height', data.height||'4ft');
     set('postSize', data.postSize||'2x2');
 
-    // Rails
     set('railsCount', data.railsCount || 2);
     renderRailsControls(card, data);
 
@@ -611,7 +638,6 @@ document.addEventListener('DOMContentLoaded', function(){
     set('walkRebuildLatch', data.walkRebuildLatch || (GATE.latchTypes && GATE.latchTypes[0]) || 'Gravity Latch');
     set('walkRebuildHinges', data.walkRebuildHinges || (GATE.hingeTypes && GATE.hingeTypes[0]) || 'Door Hinges');
 
-    // NEW: Add Walk Gate defaults
     set('walkGatesAdd', data.walkGatesAdd||'');
     set('walkAddMethod', data.walkAddMethod || 'Reuse Existing Panel');
     set('walkAddPostSize', data.walkAddPostSize || data.postSize || '2x2');
@@ -619,9 +645,12 @@ document.addEventListener('DOMContentLoaded', function(){
     set('walkAddPicketSize', data.walkAddPicketSize || SEED.picketSize[0]);
     set('walkAddLatch', data.walkAddLatch || (GATE.latchTypes && GATE.latchTypes[0]) || 'Gravity Latch');
     set('walkAddHinges', data.walkAddHinges || (GATE.hingeTypes && GATE.hingeTypes[0]) || 'Door Hinges');
+
     set('notes', data.notes||'');
 
-    // Collapsed state & toggle button sync
+    // NEW: render finial rows
+    renderFinialsControls(card, data);
+
     const toggleBtn = card.querySelector('.sp-toggle');
     const isCollapsed = Boolean(data.collapsed);
     card.classList.toggle('is-collapsed', isCollapsed);
@@ -642,25 +671,17 @@ document.addEventListener('DOMContentLoaded', function(){
   function renderRailsControls(card, data){
     const row  = card.querySelector('[data-rails-row]');
     if(!row) return;
-
-    // Remove existing dynamic rail blocks
     $$('[data-rail-block]', row).forEach(el=> el.remove());
-
     const count = parseInt((data.railsCount!=null?data.railsCount:2),10);
     const labels = railLabels(count);
     const rails = Array.isArray(data.rails) ? data.rails : [];
-
-    // Rails count + N blocks on the same row (desktop)
     row.style.setProperty('--rail-cols', `repeat(${count+1}, minmax(200px, 1fr))`);
-
     labels.forEach((label,i)=>{
       const block = document.createElement('div');
       block.className = `sp-field`;
       block.setAttribute('data-rail-block','');
-
       const patchesHtml = numberControl('railPatches_'+i,'0');
       const replHtml    = numberControl('railRepl_'+i,'0');
-
       block.innerHTML = `
         <label class="sp-label">${label} Size</label>
         <select class="sp-select" data-field="railSize_${i}">${createSelect(SEED.railSize)}</select>
@@ -684,8 +705,6 @@ document.addEventListener('DOMContentLoaded', function(){
         </div>
       `;
       row.appendChild(block);
-
-      // Apply current values
       const r = rails[i] || {};
       const sizeEl    = card.querySelector(`[data-field="railSize_${i}"]`);
       const stackEl   = card.querySelector(`[data-field="railStacked_${i}"]`);
@@ -702,6 +721,105 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
 
+  // === NEW: finial row rendering & persistence ===
+  function renderFinialsControls(card, data){
+    const cont = card.querySelector('[data-finials]');
+    if(!cont) return;
+    cont.innerHTML = '';
+    const arr = Array.isArray(data.finials) ? data.finials : [];
+    arr.forEach((f)=>{
+      const row = document.createElement('div');
+      row.className = 'sp-grid';
+      row.setAttribute('data-finial-row','');
+      row.innerHTML = `
+        <div class="sp-field col-2">
+          <label class="sp-label">Qty</label>
+          <div class="sp-number" data-finial-qty>
+            <button type="button" class="sp-step" data-dir="-1" aria-label="decrement">–</button>
+            <input type="number" inputmode="numeric" step="1" min="0" value="${f.qty||0}" />
+            <button type="button" class="sp-step" data-dir="1" aria-label="increment">+</button>
+          </div>
+        </div>
+        <div class="sp-field col-3">
+          <label class="sp-label">Style</label>
+          <select class="sp-select" data-finial-style>${createSelect(SEED.finialStyles)}</select>
+        </div>
+        <div class="sp-field col-3">
+          <label class="sp-label">Material</label>
+          <select class="sp-select" data-finial-material>${createSelect(SEED.finialMaterials)}</select>
+        </div>
+        <div class="sp-field col-3">
+          <label class="sp-label">Picket Size</label>
+          <select class="sp-select" data-finial-picket>${createSelect(SEED.picketSize)}</select>
+        </div>
+        <div class="sp-field col-1" style="align-self:end">
+          <button class="sp-btn danger" data-finial-remove type="button">Remove</button>
+        </div>`;
+      cont.appendChild(row);
+      const styleSel = row.querySelector('[data-finial-style]'); if(styleSel) styleSel.value = f.style || SEED.finialStyles[0];
+      const matSel   = row.querySelector('[data-finial-material]'); if(matSel)  matSel.value  = f.material || SEED.finialMaterials[0];
+      const pickSel  = row.querySelector('[data-finial-picket]'); if(pickSel)   pickSel.value = f.picketSize || SEED.picketSize[0];
+    });
+
+    const addBtn = card.querySelector('[data-finial-add]');
+    if(addBtn){
+      addBtn.onclick = ()=>{
+        const secId = card.getAttribute('data-id');
+        const s = state.sections.find(x=>x.id===secId);
+        if(!s) return;
+        if(!Array.isArray(s.finials)) s.finials = [];
+        s.finials.push({ qty: 1, style: SEED.finialStyles[0], material: SEED.finialMaterials[0], picketSize: s.picketSize || SEED.picketSize[0] });
+        renderFinialsControls(card, s);
+        attachNumberHandlers(card);
+        persist();
+      };
+    }
+
+    cont.addEventListener('click', (e)=>{
+      const btn = e.target.closest('[data-finial-remove]');
+      if(!btn) return;
+      const rows = Array.from(cont.querySelectorAll('[data-finial-row]'));
+      const row = btn.closest('[data-finial-row]');
+      const idx = rows.indexOf(row);
+      const secId = card.getAttribute('data-id');
+      const s = state.sections.find(x=>x.id===secId);
+      if(!s || !Array.isArray(s.finials)) return;
+      s.finials.splice(idx,1);
+      renderFinialsControls(card, s);
+      attachNumberHandlers(card);
+      persist();
+    });
+
+    cont.addEventListener('change', (e)=>{
+      if(e.target.matches('[data-finial-style], [data-finial-material], [data-finial-picket]')){
+        persistFinialsFromDOM(card);
+        persist();
+      }
+    });
+
+    cont.addEventListener('input', (e)=>{
+      if(e.target.closest('[data-finial-qty]')){
+        persistFinialsFromDOM(card);
+        persist();
+      }
+    });
+  }
+
+  function persistFinialsFromDOM(card){
+    const secId = card.getAttribute('data-id');
+    const s = state.sections.find(x=>x.id===secId);
+    if(!s) return;
+    const cont = card.querySelector('[data-finials]');
+    const rows = cont ? Array.from(cont.querySelectorAll('[data-finial-row]')) : [];
+    s.finials = rows.map(row=>{
+      const qty = parseInt((row.querySelector('[data-finial-qty] input')?.value)||'0',10) || 0;
+      const style = (row.querySelector('[data-finial-style]')?.value) || SEED.finialStyles[0];
+      const material = (row.querySelector('[data-finial-material]')?.value) || SEED.finialMaterials[0];
+      const picketSize = (row.querySelector('[data-finial-picket]')?.value) || SEED.picketSize[0];
+      return { qty, style, material, picketSize };
+    });
+  }
+
   function attachRailsHandlers(card){
     const countSel = card.querySelector('[data-field="railsCount"]');
     if(countSel){
@@ -714,21 +832,19 @@ document.addEventListener('DOMContentLoaded', function(){
         const labels = railLabels(newCount);
         s.rails = labels.map((_, i)=> s.rails[i] || { size: SEED.railSize[0], stacked:false, size2:SEED.railSize[0], patches:0, replacements:0});
         renderRailsControls(card, s);
-        attachNumberHandlers(card); // rebind +/– for newly injected controls
+        attachNumberHandlers(card);
         persist();
       });
     }
 
-    // Toggle second-size visibility + persist on any rail change
     card.addEventListener('change', (e)=>{
       const t = e.target;
       if(!t) return;
       if(t.matches('input[data-field^="railStacked_"]')){
-        const key = t.getAttribute('data-field'); // e.g., railStacked_0
+        const key = t.getAttribute('data-field');
         const cond = card.querySelector(`[data-if="${key}"]`);
         if(cond) cond.style.display = t.checked ? 'block' : 'none';
       }
-      // Keep walk-gate conditional UI fresh
       updateWalkGateConditional(card);
       persist();
     });
@@ -797,7 +913,6 @@ document.addEventListener('DOMContentLoaded', function(){
       attachRailsHandlers(card);
       updateWalkGateConditional(card);
 
-      // Dynamic section title with label value
       const titleEl = $('.sp-card-title', card);
       const labelInput = card.querySelector('[data-field="label"]');
       function refreshTitle(){
@@ -810,7 +925,6 @@ document.addEventListener('DOMContentLoaded', function(){
       $('.sp-del', card).addEventListener('click', ()=>{ removeSection(s.id); persist(); });
       $('.sp-dup', card).addEventListener('click', ()=>{ duplicateSection(s.id); persist(); });
 
-      // Collapsible handler
       const toggleBtn = $('.sp-toggle', card);
       if(toggleBtn){
         toggleBtn.addEventListener('click', ()=>{
@@ -824,7 +938,6 @@ document.addEventListener('DOMContentLoaded', function(){
         });
       }
 
-      // Track changes to inputs for autosave
       $$('input, select, textarea', card).forEach(el=>{
         el.addEventListener('input', ()=>{ persist(); });
         el.addEventListener('change', ()=>{
@@ -836,13 +949,13 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   function feetFromStr(h){
-    const m = String(h||'').match(/(\d+)/);
+    const m = String(h||'').match(/(\\d+)/);
     return m ? parseInt(m[1],10) : 0;
   }
   function styleFactor(v){
     if(v === 'Flat Top') return 2;
     if(v === 'Extended Picket') return 1.75;
-    return 1.5; // Extended Picket w/ Finials
+    return 1.5;
   }
   function puppyAdj(v){
     if(v === 'Puppy Pickets') return 0.25;
@@ -854,36 +967,31 @@ document.addEventListener('DOMContentLoaded', function(){
     map[label] = (map[label]||0) + qty;
   }
 
-  // ==== Pricing Helpers ====
   function normalizeSize(txt){
     return String(txt||'')
-      .replace(/\u201D|”/g,'"')
-      .replace(/\u00BC|¼/g,'1/4')
-      .replace(/\u00BD|½/g,'1/2')
-      .replace(/\u00BE|¾/g,'3/4')
+      .replace(/\\u201D|”/g,'\"')
+      .replace(/\\u00BC|¼/g,'1/4')
+      .replace(/\\u00BD|½/g,'1/2')
+      .replace(/\\u00BE|¾/g,'3/4')
       .trim();
   }
 
-  // Per-foot pricing (ft)
   const PRICE_FT = {
-    '1/2"': 0.57,
-    '5/8"': 0.68,
-    '3/4"': 0.74,
-    '1"':   1.07,
-    '1x2"': 1.65,
-    '1 1/2"': 1.46,
-    '1 1/4"': 1.46,
-    '1 3/4"': 2.57,
-    '2x2"': 2.57,
-    '3x3"': 6.00,
-    // Aliases for rails list using width only
-    '2"': 2.57,
-    '3"': 6.00,
-    // Flat bar (requested)
-    'Flat Bar 1/4" x 1"': 0.58
+    '1/2\"': 0.57,
+    '5/8\"': 0.68,
+    '3/4\"': 0.74,
+    '1\"':   1.07,
+    '1x2\"': 1.65,
+    '1 1/2\"': 1.46,
+    '1 1/4\"': 1.46,
+    '1 3/4\"': 2.57,
+    '2x2\"': 2.57,
+    '3x3\"': 6.00,
+    '2\"': 2.57,
+    '3\"': 6.00,
+    'Flat Bar 1/4\" x 1\"': 0.58
   };
 
-  // Fixed-price items (each)
   const PRICE_MISC = {
     'Gravity Latch': 5,
     'Short Pool Latch': 80,
@@ -893,7 +1001,8 @@ document.addEventListener('DOMContentLoaded', function(){
     'Pair of Door Hinges': 5,
     'Pair of Bat Wing Hinges': 5,
     'Pair of Auto Close Hinges': 50,
-    // Leave prefab visible but costed at $0 until priced
+    // NEW
+    'replacement finial': 1.25,
     'prefab gate panel': 0
   };
 
@@ -947,13 +1056,12 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }
 
-  // Generate text outputs
   function generateNotes(){
     syncStateFromDOM();
 
     const lines = [];
     const totals = {
-      length:0, hardscape:0, trim:0, digOut:0,
+      length:0, hardscape:0, trim:0, digOut:0, finials:0,
       wiPickets:0, wiPatches:0, wiRails:0,
       posts2x2:0, posts3x3:0, postsRealign2x2:0, postsRealign3x3:0,
       walkGates:0, walkRealign:0, walkHardware:0, walkRebuild:0,
@@ -991,7 +1099,7 @@ document.addEventListener('DOMContentLoaded', function(){
       lines.push(`- Length: ${numOrDash(s.length)} ft`);
       if (s.hardscape > 0) lines.push(`- Over hardscape: ${s.hardscape} lf`);
       if (s.trim > 0)      lines.push(`- Trim: ${s.trim} lf`);
-      if (s.digOut > 0)   lines.push(`- Dig out: ${s.digOut} lf`);
+      if (s.digOut > 0)    lines.push(`- Dig out: ${s.digOut} lf`);
 
       const i = (v)=> (parseInt(v||0,10) || 0);
       lines.push(`- Repairs:`);
@@ -1003,7 +1111,18 @@ document.addEventListener('DOMContentLoaded', function(){
       lines.push(`  - 2x2 posts to realign: ${i(s.postsRealign2x2)}`);
       lines.push(`  - 3x3 posts to realign: ${i(s.postsRealign3x3)}`);
 
-      // Walk gate details per section (existing)
+      // NEW: Finials
+      const finArr = Array.isArray(s.finials) ? s.finials : [];
+      const finCount = finArr.reduce((acc,f)=> acc + (parseInt(f?.qty||0,10) || 0), 0);
+      if(finCount){
+        lines.push(`- Finial replacements: ${finCount}`);
+        finArr.forEach(f=>{
+          const q = parseInt(f?.qty||0,10) || 0; if(!q) return;
+          lines.push(`  - ${q} × ${f.material} ${f.style} on ${f.picketSize} pickets`);
+        });
+      }
+
+      // Walk gate details
       const wg  = i(s.walkGates);
       const wgr = i(s.walkGatesRealign);
       const wgh = i(s.walkGatesHardware);
@@ -1015,7 +1134,7 @@ document.addEventListener('DOMContentLoaded', function(){
         if (wgb) lines.push(`  - Rebuild: ${wgb} (Frame: ${s.walkRebuildFrame}, Pickets: ${s.walkRebuildPicket}, Latch: ${s.walkRebuildLatch}, Hinges: ${s.walkRebuildHinges})`);
       }
 
-      // NEW: Add walk gate into existing fence
+      // Add walk gate into existing fence
       const wga = i(s.walkGatesAdd);
       if (wga){
         lines.push(`- Add walk gate(s): ${wga} — ${s.walkAddMethod}`);
@@ -1029,6 +1148,7 @@ document.addEventListener('DOMContentLoaded', function(){
       totals.hardscape    += i(s.hardscape);
       totals.trim         += i(s.trim);
       totals.digOut       += i(s.digOut);
+      totals.finials      += finCount;
       totals.wiPickets    += i(s.wiPickets);
       totals.wiPatches    += sectionPatchTotal;
       totals.wiRails      += sectionReplTotal;
@@ -1051,6 +1171,7 @@ document.addEventListener('DOMContentLoaded', function(){
       if (t.hardscape)     lines.push(`- Over hardscape: ${t.hardscape} lf`);
       if (t.trim)          lines.push(`- Trim: ${t.trim} lf`);
       if (t.digOut)        lines.push(`- Dig out: ${t.digOut} lf`);
+      if (t.finials)       lines.push(`- Finials to replace: ${t.finials}`);
       if (t.wiPickets)     lines.push(`- Pickets to replace: ${t.wiPickets}`);
       if (t.wiPatches)     lines.push(`- Rail patches: ${t.wiPatches}`);
       if (t.wiRails)       lines.push(`- Full rail replacements: ${t.wiRails}`);
@@ -1065,45 +1186,29 @@ document.addEventListener('DOMContentLoaded', function(){
       if (t.walkGateAdds)  lines.push(`- Walk gates to add: ${t.walkGateAdds}`);
     }
 
-    // ==== Sub notes & materials aggregation ====
+    // ==== Materials aggregation ====
     let paintLenTotal = 0;
     let paintGallons = 0;
     let paintCans = 0;
 
     let manHours = (totals.wiPickets*12 + totals.wiPatches*20 + totals.wiRails*30 + totals.posts2x2*60 + totals.posts3x3*90 + (totals.postsRealign2x2 + totals.postsRealign3x3)*30)/60;
     manHours += totals.walkRealign * 1 + totals.walkHardware * 1 + totals.walkRebuild * 3;
-    // Dig out labor: 5 minutes per LF
+    // Dig out: 5 minutes per LF
     manHours += totals.digOut * (5/60);
-    // NEW: 4 hours per added walk gate (1 person)
+    // Finials: 0.5 minutes each
+    manHours += totals.finials * (0.5/60);
+    // Added gates: 4 hours each
     manHours += totals.walkGateAdds * 4;
-
-    const lengthHours = state.sections.reduce((acc, s)=>{
-      if (s.painting !== 'Paint Section') return acc;
-      const len = parseInt(s.length||0,10) || 0;
-      if(!len) return acc;
-      const denom = styleFactor(s.style) - puppyAdj(s.puppy);
-      const hours = (len/8) / Math.max(1, denom);
-      return acc + hours;
-    }, 0);
-    const paintHardscapeLen = state.sections.reduce((acc,s)=> acc + ((s.painting==='Paint Section') ? (parseInt(s.hardscape||0,10)||0) : 0), 0);
-    const paintTrimLen = state.sections.reduce((acc,s)=> acc + ((s.painting==='Paint Section') ? (parseInt(s.trim||0,10)||0) : 0), 0);
-
-    manHours += lengthHours + (paintHardscapeLen/20) + (paintTrimLen/50);
-
-    const crew = Math.ceil(manHours / 8);
-    const durationStr = crew > 0 ? `1 day for ${crew} ${crew===1?'guy':'guys'}` : 'TBD';
 
     const materials = {};
 
-    // 2x2 posts (height + 3ft, min 8ft)
+    // posts (2x2 by length)
     const posts2x2ByLenCalc = {};
     state.sections.forEach(s=>{
       const hft = feetFromStr(s.height);
       const postLen = Math.max(8, hft + 3);
       const nReplace = parseInt(s.posts2x2||0,10) || 0;
       if(nReplace>0){ posts2x2ByLenCalc[postLen] = (posts2x2ByLenCalc[postLen]||0) + nReplace; }
-
-      // NEW: gate add post (2x2)
       const addG = parseInt(s.walkGatesAdd||0,10) || 0;
       if(addG>0 && (s.walkAddPostSize||'').trim() === '2x2'){
         posts2x2ByLenCalc[postLen] = (posts2x2ByLenCalc[postLen]||0) + addG;
@@ -1113,7 +1218,7 @@ document.addEventListener('DOMContentLoaded', function(){
       addMat(materials, `2x2x${len} posts`, posts2x2ByLenCalc[len]);
     });
 
-    // 3x3 posts as 12ft raw (aggregate) - include gate adds
+    // 3x3 raw sticks (12ft) incl. gate adds
     const posts3x3ByLenCalc = {};
     state.sections.forEach(s=>{
       const count = parseInt(s.posts3x3||0,10) || 0;
@@ -1134,10 +1239,10 @@ document.addEventListener('DOMContentLoaded', function(){
     Object.values(posts3x3ByLenCalc).forEach(v=>{ raw3x3Total += v; });
     if(raw3x3Total>0){ addMat(materials, '3x3x12 raw steel', raw3x3Total); }
 
-    // Concrete bags
+    // Concrete
     const concreteBagsCalc = totals.posts2x2 + totals.posts3x3 + Math.ceil((totals.postsRealign2x2 + totals.postsRealign3x3) * 0.5) + totals.walkRealign + totals.walkGateAdds;
 
-    // Gate hardware & added gates materials
+    // Gate bits + gate materials
     const latchCounts = {};
     const hingeCounts = {};
     state.sections.forEach(s=>{
@@ -1150,12 +1255,11 @@ document.addEventListener('DOMContentLoaded', function(){
       if(rb>0){
         if(s.walkRebuildLatch) latchCounts[s.walkRebuildLatch] = (latchCounts[s.walkRebuildLatch]||0) + rb;
         if(s.walkRebuildHinges) hingeCounts[s.walkRebuildHinges] = (hingeCounts[s.walkRebuildHinges]||0) + rb;
-
         const frame = s.walkRebuildFrame || '';
         const pick  = s.walkRebuildPicket || '';
         const fN = normalizeSize(frame);
         const pN = normalizeSize(pick);
-        if(fN === '1"' && (pN === '1/2"' || pN === '5/8"')){
+        if(fN === '1\"' && (pN === '1/2\"' || pN === '5/8\"')){
           addMat(materials, 'prefab gate panel', rb);
           addMat(materials, `12ft rail sticks (${frame})`, rb * 2);
         } else {
@@ -1163,20 +1267,16 @@ document.addEventListener('DOMContentLoaded', function(){
           addMat(materials, `12ft picket sticks (${pick})`, rb * 2);
         }
       }
-
-      // NEW: gate adds
       const addG = parseInt(s.walkGatesAdd||0,10) || 0;
       if(addG>0){
         if(s.walkAddLatch) latchCounts[s.walkAddLatch] = (latchCounts[s.walkAddLatch]||0) + addG;
         if(s.walkAddHinges) hingeCounts[s.walkAddHinges] = (hingeCounts[s.walkAddHinges]||0) + addG;
-
         const frame = s.walkAddFrameSize || '';
         if ((s.walkAddMethod||'') === 'Reuse Existing Panel'){
           addMat(materials, `12ft rail sticks (${frame})`, addG * 2);
         } else {
           addMat(materials, `12ft rail sticks (${frame})`, addG * 4);
-          // 25 pickets per new panel per gate
-          let ph = parseInt(s.picketHeight||0,10) || 0; // inches
+          let ph = parseInt(s.picketHeight||0,10) || 0;
           if (ph <= 0) {
             const hf = feetFromStr(s.height);
             if (hf > 0) ph = hf * 12;
@@ -1190,9 +1290,8 @@ document.addEventListener('DOMContentLoaded', function(){
       }
     });
 
-    // Add latches
+    // Add latches/hinges
     Object.keys(latchCounts).forEach(k=> addMat(materials, k, latchCounts[k]));
-    // Add hinges with "Pair of ..." labeling
     const hingeLabel = (k)=> k==='Door Hinges' ? 'Pair of Door Hinges'
                             : k==='Bat Wing Hinges' ? 'Pair of Bat Wing Hinges'
                             : k==='Auto Close Hinges' ? 'Pair of Auto Close Hinges'
@@ -1201,7 +1300,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
     addMat(materials, 'Maximizer bags of concrete', concreteBagsCalc);
 
-    // Picket sticks (by size only) from WI replacements
+    // WI picket sticks from replacements
     const picketBySizeCalc = {};
     state.sections.forEach(s=>{
       const need = parseInt(s.wiPickets||0,10) || 0;
@@ -1260,21 +1359,15 @@ document.addEventListener('DOMContentLoaded', function(){
       addMat(materials, `12ft rail sticks (${size})`, railStickBySizeMat[size]);
     });
 
-    // Paint materials (from total section length only)
-    paintLenTotal = 0;
-    paintGallons  = 0;
-    paintCans     = 0;
-
+    // Paint estimates
     let totalLenPaint = 0;
     let totalLenSpot  = 0;
-
     state.sections.forEach(s=>{
       const len = (parseInt(s.length||0,10) || 0);
       if(!len) return;
       if (s.painting === 'Paint Section') totalLenPaint += len;
       else if (s.painting === 'Spot Paint Welds') totalLenSpot += len;
     });
-
     paintLenTotal = totalLenPaint;
     paintGallons  = Math.ceil(totalLenPaint / 100);
     if (paintGallons > 0) paintCans += Math.ceil(paintGallons * 0.5);
@@ -1282,16 +1375,24 @@ document.addEventListener('DOMContentLoaded', function(){
       const unitsSpot = Math.ceil(totalLenSpot / 100);
       paintCans += Math.max(1, Math.ceil(unitsSpot * 0.5));
     }
-
     if (paintGallons > 0) addMat(materials, 'gallons of gloss black paint', paintGallons);
     if (paintCans > 0)    addMat(materials, 'spray cans (gloss black)', paintCans);
+
+    // Finials (descriptive labels) for MATERIALS list
+    state.sections.forEach(s=>{
+      const arr = Array.isArray(s.finials) ? s.finials : [];
+      arr.forEach(f=>{
+        const q = parseInt(f?.qty||0,10) || 0; if(!q) return;
+        addMat(materials, `finials - ${f.material} - ${f.style} (${f.picketSize})`, q);
+      });
+    });
 
     // ===== Costing =====
     let unpriced = false;
     const matBreak = [];
     let costMaterials = 0;
 
-    // Misc (latches/hinges/prefab)
+    // PRICE_MISC line-items
     Object.entries(materials).forEach(([label, qty])=>{
       if(Object.prototype.hasOwnProperty.call(PRICE_MISC, label)){
         const unit = PRICE_MISC[label] || 0;
@@ -1321,14 +1422,14 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const posts2x2CountsCost = {};
     Object.keys(materials).forEach(k=>{
-      const m = k.match(/^2x2x(\d+)\s+posts$/);
+      const m = k.match(/^2x2x(\\d+)\\s+posts$/);
       if(m){ posts2x2CountsCost[m[1]] = (posts2x2CountsCost[m[1]]||0) + materials[k]; }
     });
     Object.entries(posts2x2CountsCost).forEach(([lenStr, qty])=>{
       const len = parseInt(lenStr,10) || 0;
       let unit = PRICE.post2x2[len];
       if(unit==null){
-        const perFt = PRICE_FT['2x2"']||0;
+        const perFt = PRICE_FT['2x2\"']||0;
         unit = perFt * len;
       }
       const c = qty * (unit||0);
@@ -1342,13 +1443,13 @@ document.addEventListener('DOMContentLoaded', function(){
       return acc + (m ? materials[k] : 0);
     },0);
     if(raw3x3Count>0){
-      const unit3x3 = 12 * (PRICE_FT['3x3"']||0);
+      const unit3x3 = 12 * (PRICE_FT['3x3\"']||0);
       const c = raw3x3Count * unit3x3;
       costMaterials += c;
-      matBreak.push('  - 3x3 raw steel sticks: '+raw3x3Count+' x 12ft x $'+money(PRICE_FT['3x3"']||0)+'/ft = $'+money(c));
+      matBreak.push('  - 3x3 raw steel sticks: '+raw3x3Count+' x 12ft x $'+money(PRICE_FT['3x3\"']||0)+'/ft = $'+money(c));
     }
 
-    const picketLine = /^12ft picket sticks \((.+?)\)/;
+    const picketLine = /^12ft picket sticks \\((.+?)\\)/;
     Object.entries(materials).forEach(([label, qty])=>{
       const m = label.match(picketLine);
       if(!m) return;
@@ -1360,7 +1461,7 @@ document.addEventListener('DOMContentLoaded', function(){
       matBreak.push('  - 12ft picket sticks '+s+': '+qty+' x 12ft x $'+money(perFt)+'/ft = $'+money(c));
     });
 
-    const railLine = /^12ft rail sticks \((.+?)\)/;
+    const railLine = /^12ft rail sticks \\((.+?)\\)/;
     Object.entries(materials).forEach(([label, qty])=>{
       const m = label.match(railLine);
       if(!m) return;
@@ -1372,13 +1473,33 @@ document.addEventListener('DOMContentLoaded', function(){
       matBreak.push('  - 12ft rail sticks '+s+': '+qty+' x 12ft x $'+money(perFt)+'/ft = $'+money(c));
     });
 
-    const crewCost = laborCost(crew);
-    const directCosts = crewCost + costMaterials;
-    const revenueRes = computeChargeRevenue(directCosts);
-    const revenue = revenueRes && isFinite(revenueRes.revenue) ? revenueRes.revenue : NaN;
-    const commissionFormula$ = isFinite(revenue)
-      ? (RATES.commission * (((1 - RATES.overhead) * revenue) - directCosts))
-      : NaN;
+    // NEW: Finials cost (flat $1.25 each via total of descriptive labels)
+    const finialsPricedUnit = PRICE_MISC['replacement finial'] || 0;
+    const finialsTotalForCost = Object.keys(materials).reduce((acc,k)=>{
+      if(k.startsWith('finials - ')) return acc + (materials[k]||0);
+      return acc;
+    }, 0);
+    if(finialsTotalForCost>0){
+      const c = finialsTotalForCost * finialsPricedUnit;
+      costMaterials += c;
+      matBreak.push('  - Replacement finials: '+finialsTotalForCost+' x $'+money(finialsPricedUnit)+' = $'+money(c));
+    }
+
+    // Labor + totals
+    const lengthHours = state.sections.reduce((acc, s)=>{
+      if (s.painting !== 'Paint Section') return acc;
+      const len = parseInt(s.length||0,10) || 0;
+      if(!len) return acc;
+      const denom = styleFactor(s.style) - puppyAdj(s.puppy);
+      const hours = (len/8) / Math.max(1, denom);
+      return acc + hours;
+    }, 0);
+    const paintHardscapeLen = state.sections.reduce((acc,s)=> acc + ((s.painting==='Paint Section') ? (parseInt(s.hardscape||0,10)||0) : 0), 0);
+    const paintTrimLen = state.sections.reduce((acc,s)=> acc + ((s.painting==='Paint Section') ? (parseInt(s.trim||0,10)||0) : 0), 0);
+    manHours += lengthHours + (paintHardscapeLen/20) + (paintTrimLen/50);
+
+    const crew = Math.ceil(manHours / 8);
+    const durationStr = crew > 0 ? `1 day for ${crew} ${crew===1?'guy':'guys'}` : 'TBD';
 
     const sub = [];
     sub.push('JOB DURATION');
@@ -1389,10 +1510,8 @@ document.addEventListener('DOMContentLoaded', function(){
       sub.push('- '+materials[label]+'x '+label);
     });
 
-    // --- GO BAG (do NOT include in costs) ---
     sub.push('');
     sub.push('GO BAG (bring in addition to above)');
-
     const postSizesSet = new Set(state.sections.map(s => (s.postSize||'').trim()).filter(Boolean));
     const maxHft = Math.max(0, ...state.sections.map(s => feetFromStr(s.height)));
     const goPostLen = Math.max(8, (maxHft>0 ? maxHft + 3 : 8));
@@ -1406,7 +1525,6 @@ document.addEventListener('DOMContentLoaded', function(){
         sub.push(`- 3x ${ps} posts`);
       }
     });
-
     sub.push(`- 3x Maximizer bags of concrete`);
     sub.push('- 1x gallon of gloss black paint');
     sub.push('- 1x spray can (gloss black)');
@@ -1421,10 +1539,8 @@ document.addEventListener('DOMContentLoaded', function(){
       }
     });
     const picketSizesSet = new Set(state.sections.map(s => s.picketSize).filter(Boolean));
-
     railSizesSet.forEach(size => sub.push(`- 3x 12ft rail sticks (${size})`));
     picketSizesSet.forEach(size => sub.push(`- 3x 12ft picket sticks (${size})`));
-    // --- end GO BAG ---
 
     sub.push('');
     sub.push('SCOPE (Totals)');
@@ -1440,10 +1556,19 @@ document.addEventListener('DOMContentLoaded', function(){
     if (totals.walkHardware > 0)    sub.push('- Walk gate hardware replacements: '+totals.walkHardware);
     if (totals.walkRebuild > 0)     sub.push('- Walk gates to rebuild: '+totals.walkRebuild);
     if (totals.walkGateAdds > 0)    sub.push('- Walk gates to add: '+totals.walkGateAdds);
+    if (totals.finials > 0)         sub.push('- Finials to replace: '+totals.finials);
     if (totals.digOut > 0)          sub.push('- Dig out: '+totals.digOut+' lf');
     if (paintLenTotal > 0)          sub.push('- Scrape off loose rust and debris, then hand paint '+paintLenTotal+' ft of fence');
 
-    if (notesSubEl) { notesSubEl.value = sub.join('\n'); }
+    if (notesSubEl) { notesSubEl.value = sub.join('\\n'); }
+
+    const crewCost = laborCost(crew);
+    const directCosts = crewCost + costMaterials;
+    const revenueRes = computeChargeRevenue(directCosts);
+    const revenue = revenueRes && isFinite(revenueRes.revenue) ? revenueRes.revenue : NaN;
+    const commissionFormula$ = isFinite(revenue)
+      ? (RATES.commission * (((1 - RATES.overhead) * revenue) - directCosts))
+      : NaN;
 
     const cost = [];
     cost.push('ESTIMATED COST');
@@ -1468,7 +1593,7 @@ document.addEventListener('DOMContentLoaded', function(){
       : lines;
     const fullNotes = [...outLines, '', ...cost];
 
-    notesEl.value = fullNotes.join('\n');
+    notesEl.value = fullNotes.join('\\n');
     outputEl.style.display = 'grid';
     if (window.parentIFrame && typeof window.parentIFrame.size === 'function') {
       try { window.parentIFrame.size(); } catch(e){}
@@ -1500,14 +1625,11 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   const KEY = 'sp_scope_v1';
-  function persist(){
-    // Persistence disabled: do nothing so values are not saved between refreshes
-  }
+  function persist(){}
 
   function restore(){
-    // Ensure any previously saved data is cleared and never restored
     try { localStorage.removeItem(KEY); } catch(e){}
-    return false; // always start fresh
+    return false;
   }
   function resetAll(){
     if(!confirm('Clear all sections?')) return;
