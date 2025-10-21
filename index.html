@@ -233,6 +233,7 @@ document.addEventListener('DOMContentLoaded', function(){
         </div>
       </div>
       <div class="sp-grid">
+        <!-- ========== GROUP: Section Details ========== -->
         <div class="sp-field col-6">
           <label class="sp-label">Section Label (e.g., Front, Left Side, Pool Run)</label>
           <input class="sp-input" data-field="label" placeholder="Enter a label" />
@@ -250,41 +251,7 @@ document.addEventListener('DOMContentLoaded', function(){
           <select class="sp-select" data-field="postSize">${createSelect(SEED.postSize)}</select>
         </div>
 
-        <!-- Rails COUNT + all per-rail blocks on one row -->
-        <div class="sp-field col-12" data-rails-wrap>
-          <div class="sp-rail-row" data-rails-row>
-            <div class="sp-field" data-rail-count>
-              <label class="sp-label">Rails</label>
-              <select class="sp-select" data-field="railsCount">
-                <option value="2">2 Rail</option>
-                <option value="3">3 Rail</option>
-                <option value="4">4 Rail</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div class="sp-field col-3">
-          <label class="sp-label">Picket Size</label>
-          <select class="sp-select" data-field="picketSize">${createSelect(SEED.picketSize)}</select>
-        </div>
-        <div class="sp-field col-3">
-          <label class="sp-label">Picket Height (inches) — leave blank to auto-use fence height</label>
-          ${numberControl('picketHeight','e.g., 54')}
-        </div>
-        <div class="sp-field col-3">
-          <label class="sp-label">Puppy Pickets</label>
-          <select class="sp-select" data-field="puppy">${createSelect(SEED.puppy)}</select>
-        </div>
-        <div class="sp-field col-3">
-          <label class="sp-label">Painting</label>
-          <select class="sp-select" data-field="painting">
-            <option value="Paint Section">Paint Section</option>
-            <option value="Spot Paint Welds">Spot Paint Welds</option>
-            <option value="None">None</option>
-          </select>
-        </div>
-
+        <!-- Move these up directly after Post Size -->
         <div class="sp-field col-3">
           <label class="sp-label">Section Length (ft)</label>
           ${numberControl('length','e.g., 48')}
@@ -301,12 +268,18 @@ document.addEventListener('DOMContentLoaded', function(){
           <label class="sp-label">LF to Dig Out</label>
           ${numberControl('digOut','e.g., 10')}
         </div>
-
         <div class="sp-field col-3">
-          <label class="sp-label"># Pickets to Replace</label>
-          ${numberControl('wiPickets','0')}
+          <label class="sp-label">Painting</label>
+          <select class="sp-select" data-field="painting">
+            <option value="Paint Section">Paint Section</option>
+            <option value="Spot Paint Welds">Spot Paint Welds</option>
+            <option value="None">None</option>
+          </select>
         </div>
 
+        <div class="col-12 sp-divider"></div>
+
+        <!-- ========== GROUP: Posts & Caps ========== -->
         <div class="sp-field col-3">
           <label class="sp-label"># 2x2 Posts to Replace</label>
           ${numberControl('posts2x2','0')}
@@ -324,17 +297,7 @@ document.addEventListener('DOMContentLoaded', function(){
           ${numberControl('postsRealign3x3','0')}
         </div>
 
-        <!-- NEW: Finial replacements -->
-        <div class="sp-field col-12">
-          <label class="sp-label">Finial Replacements</label>
-          <div data-finials></div>
-          <div class="sp-row" style="margin-top:6px">
-            <button class="sp-btn ghost" type="button" data-finial-add>+ Add Finial Group</button>
-            <span class="sp-hint">Each replacement adds ~30 seconds of labor. Unit cost: $1.25.</span>
-          </div>
-        </div>
-
-        <!-- NEW: Post Cap replacements -->
+        <!-- Post Cap replacements (kept as a block) -->
         <div class="sp-field col-12">
           <label class="sp-label">Post Cap Replacements</label>
           <div data-caps></div>
@@ -344,7 +307,55 @@ document.addEventListener('DOMContentLoaded', function(){
           </div>
         </div>
 
-        <!-- Walk Gates (existing) -->
+        <div class="col-12 sp-divider"></div>
+
+        <!-- ========== GROUP: Rails ========== -->
+        <div class="sp-field col-12" data-rails-wrap>
+          <div class="sp-rail-row" data-rails-row>
+            <div class="sp-field" data-rail-count>
+              <label class="sp-label">Rails</label>
+              <select class="sp-select" data-field="railsCount">
+                <option value="2">2 Rail</option>
+                <option value="3">3 Rail</option>
+                <option value="4">4 Rail</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 sp-divider"></div>
+
+        <!-- ========== GROUP: Pickets & Finials ========== -->
+        <div class="sp-field col-3">
+          <label class="sp-label">Picket Size</label>
+          <select class="sp-select" data-field="picketSize">${createSelect(SEED.picketSize)}</select>
+        </div>
+        <div class="sp-field col-3">
+          <label class="sp-label">Picket Height (inches) — leave blank to auto-use fence height</label>
+          ${numberControl('picketHeight','e.g., 54')}
+        </div>
+        <div class="sp-field col-3">
+          <label class="sp-label">Puppy Pickets</label>
+          <select class="sp-select" data-field="puppy">${createSelect(SEED.puppy)}</select>
+        </div>
+        <div class="sp-field col-3">
+          <label class="sp-label"># Pickets to Replace</label>
+          ${numberControl('wiPickets','0')}
+        </div>
+
+        <!-- Finial replacements (kept as a block) -->
+        <div class="sp-field col-12">
+          <label class="sp-label">Finial Replacements</label>
+          <div data-finials></div>
+          <div class="sp-row" style="margin-top:6px">
+            <button class="sp-btn ghost" type="button" data-finial-add>+ Add Finial Group</button>
+            <span class="sp-hint">Each replacement adds ~30 seconds of labor. Unit cost: $1.25.</span>
+          </div>
+        </div>
+
+        <div class="col-12 sp-divider"></div>
+
+        <!-- ========== GROUP: Gates (unchanged, follows after above groups) ========== -->
         <div class="sp-field col-3">
           <label class="sp-label"># Walk Gates</label>
           ${numberControl('walkGates','0')}
