@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <div class="sp-grid">
         <!-- ========== GROUP: Section Details ========== -->
         <div class="sp-field col-6">
-          <label class="sp-label">Section Label (e.g., Front, Left Side, Pool Run)</label>
+          <label class="sp-label">Section Label (e.g., Front Right, Right Side, Back Right, etc)</label>
           <input class="sp-input" data-field="label" placeholder="Enter a label" />
         </div>
         <div class="sp-field col-2">
@@ -320,6 +320,18 @@ document.addEventListener('DOMContentLoaded', function(){
                 <option value="4">4 Rail</option>
               </select>
             </div>
+          </div>
+        </div>
+
+        <div class="col-12 sp-divider"></div>
+
+        <!-- ========== GROUP: Panel Replacements ========== -->
+        <div class="sp-field col-12">
+          <label class="sp-label">Panel Replacements</label>
+          <div data-panels></div>
+          <div class="sp-row" style="margin-top:6px">
+            <button class="sp-btn ghost" type="button" data-panel-add>+ Add Panel Group</button>
+            <span class="sp-hint">Prefab panel eligible if width ≤ 96&quot; (8 ft), 1&quot; rails, and 1/2&quot; or 5/8&quot; pickets. Install = 30 min per panel; custom build+paint = 1.5 hr per panel.</span>
           </div>
         </div>
 
@@ -494,6 +506,8 @@ document.addEventListener('DOMContentLoaded', function(){
       finials: [],
       // NEW: Post Caps
       caps: [],
+      // NEW: Panel Replacements
+      panels: [],
 
       ...data
     });
@@ -568,6 +582,23 @@ document.addEventListener('DOMContentLoaded', function(){
       });
     }
 
+    // PANELs (dynamic rows)
+    const panels = [];
+    const panelsCont = card.querySelector('[data-panels]');
+    if(panelsCont){
+      const rows = Array.from(panelsCont.querySelectorAll('[data-panel-row]'));
+      rows.forEach(row=>{
+        const qty = parseInt((row.querySelector('[data-panel-qty] input')?.value)||'0',10) || 0;
+        const height = (row.querySelector('[data-panel-height]')?.value) || SEED.height[1];
+        const style  = (row.querySelector('[data-panel-style]')?.value) || SEED.style[0];
+        const railSize = (row.querySelector('[data-panel-rail]')?.value) || SEED.railSize[0];
+        const picketSize = (row.querySelector('[data-panel-picket]')?.value) || SEED.picketSize[0];
+        const widthIn = parseInt((row.querySelector('[data-panel-width] input')?.value)||'0',10) || 0;
+        const finialStyle = (row.querySelector('[data-panel-finial-style]')?.value) || SEED.finialStyles[0];
+        if(qty>0){ panels.push({ qty, height, style, railSize, picketSize, widthIn, finialStyle }); }
+      });
+    }
+
     return {
       id,
       label: val('label').trim(),
@@ -619,6 +650,8 @@ document.addEventListener('DOMContentLoaded', function(){
       finials,
       // NEW: caps
       caps,
+      // NEW: panels
+      panels,
 
       notes: val('notes').trim()
     };
@@ -695,6 +728,8 @@ document.addEventListener('DOMContentLoaded', function(){
     renderFinialsControls(card, data);
     // NEW: render cap rows
     renderCapsControls(card, data);
+    // NEW: render panel rows
+    renderPanelsControls(card, data);
     const toggleBtn = card.querySelector('.sp-toggle');
     const isCollapsed = Boolean(data.collapsed);
     card.classList.toggle('is-collapsed', isCollapsed);
@@ -865,6 +900,140 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   // === NEW: finial row rendering & persistence ===
+  // === PANEL REPLACEMENTS: row rendering & persistence ===
+  function renderPanelsControls(card, data){
+    const cont = card.querySelector('[data-panels]');
+    if(!cont) return;
+    cont.innerHTML = '';
+    const arr = Array.isArray(data.panels) ? data.panels : [];
+
+    arr.forEach((p)=>{
+      const row = document.createElement('div');
+      row.className = 'sp-grid';
+      row.setAttribute('data-panel-row','');
+      row.innerHTML = `
+        <div class="sp-field col-2">
+          <label class="sp-label">Qty</label>
+          <div class="sp-number" data-panel-qty>
+            <button type="button" class="sp-step" data-dir="-1" aria-label="decrement">–</button>
+            <input type="number" inputmode="numeric" step="1" min="0" value="${p.qty||0}" />
+            <button type="button" class="sp-step" data-dir="1" aria-label="increment">+</button>
+          </div>
+        </div>
+        <div class="sp-field col-2">
+          <label class="sp-label">Height</label>
+          <select class="sp-select" data-panel-height>${createSelect(SEED.height)}</select>
+        </div>
+        <div class="sp-field col-3">
+          <label class="sp-label">Style</label>
+          <select class="sp-select" data-panel-style>${createSelect(SEED.style)}</select>
+        </div>
+        <div class="sp-field col-2">
+          <label class="sp-label">Rail Size</label>
+          <select class="sp-select" data-panel-rail>${createSelect(SEED.railSize)}</select>
+        </div>
+        <div class="sp-field col-2">
+          <label class="sp-label">Picket Size</label>
+          <select class="sp-select" data-panel-picket>${createSelect(SEED.picketSize)}</select>
+        </div>
+        <div class="sp-field col-2">
+          <label class="sp-label">Panel Width (in)</label>
+          <div class="sp-number" data-panel-width>
+            <button type="button" class="sp-step" data-dir="-1" aria-label="decrement">–</button>
+            <input type="number" inputmode="numeric" step="1" min="1" value="${p.widthIn||96}" />
+            <button type="button" class="sp-step" data-dir="1" aria-label="increment">+</button>
+          </div>
+        </div>
+        <div class="sp-field col-3" data-panel-finial-wrap style="display:none">
+          <label class="sp-label">Finial Style (26 / panel)</label>
+          <select class="sp-select" data-panel-finial-style>${createSelect(SEED.finialStyles)}</select>
+        </div>
+        <div class="sp-field col-1" style="align-self:end">
+          <button class="sp-btn danger" data-panel-remove type="button">Remove</button>
+        </div>`;
+      cont.appendChild(row);
+
+      // set defaults
+      row.querySelector('[data-panel-height]').value = p.height || SEED.height[1];
+      row.querySelector('[data-panel-style]').value  = p.style  || SEED.style[0];
+      row.querySelector('[data-panel-rail]').value   = p.railSize || SEED.railSize[0];
+      row.querySelector('[data-panel-picket]').value = p.picketSize || SEED.picketSize[0];
+      const finWrap = row.querySelector('[data-panel-finial-wrap]');
+      const styleSel = row.querySelector('[data-panel-style]');
+      const finSel = row.querySelector('[data-panel-finial-style]');
+      if(styleSel){
+        const show = /Finials/i.test(styleSel.value);
+        finWrap.style.display = show ? 'block' : 'none';
+      }
+      if(finSel){ finSel.value = p.finialStyle || SEED.finialStyles[0]; }
+    });
+
+    const addBtn = card.querySelector('[data-panel-add]');
+    if(addBtn){
+      addBtn.onclick = ()=>{
+        const secId = card.getAttribute('data-id');
+        const s = state.sections.find(x=>x.id===secId);
+        if(!s) return;
+        if(!Array.isArray(s.panels)) s.panels = [];
+        s.panels.push({ qty:1, height: SEED.height[1], style: SEED.style[0], railSize: SEED.railSize[0], picketSize: SEED.picketSize[0], widthIn: 96, finialStyle: SEED.finialStyles[0]});
+        renderPanelsControls(card, s);
+        attachNumberHandlers(card);
+        persist();
+      };
+    }
+
+    cont.addEventListener('click', (e)=>{
+      const btn = e.target.closest('[data-panel-remove]');
+      if(!btn) return;
+      const rows = Array.from(cont.querySelectorAll('[data-panel-row]'));
+      const row = btn.closest('[data-panel-row]');
+      const idx = rows.indexOf(row);
+      const secId = card.getAttribute('data-id');
+      const s = state.sections.find(x=>x.id===secId);
+      if(!s || !Array.isArray(s.panels)) return;
+      s.panels.splice(idx,1);
+      renderPanelsControls(card, s);
+      attachNumberHandlers(card);
+      persist();
+    });
+
+    cont.addEventListener('change', (e)=>{
+      if(e.target.matches('[data-panel-style], [data-panel-height], [data-panel-rail], [data-panel-picket], [data-panel-finial-style]')){
+        // Toggle finial picker visibility
+        if(e.target.matches('[data-panel-style]')){
+          const wrap = e.target.closest('[data-panel-row]').querySelector('[data-panel-finial-wrap]');
+          wrap.style.display = /Finials/i.test(e.target.value) ? 'block' : 'none';
+        }
+        persistPanelsFromDOM(card);
+        persist();
+      }
+    });
+
+    cont.addEventListener('input', (e)=>{
+      if(e.target.closest('[data-panel-qty]') || e.target.closest('[data-panel-width]')){
+        persistPanelsFromDOM(card);
+        persist();
+      }
+    });
+  }
+
+  function persistPanelsFromDOM(card){
+    const secId = card.getAttribute('data-id');
+    const s = state.sections.find(x=>x.id===secId);
+    if(!s) return;
+    const cont = card.querySelector('[data-panels]');
+    const rows = cont ? Array.from(cont.querySelectorAll('[data-panel-row]')) : [];
+    s.panels = rows.map(row=>{
+      const qty = parseInt((row.querySelector('[data-panel-qty] input')?.value)||'0',10) || 0;
+      const height = (row.querySelector('[data-panel-height]')?.value) || SEED.height[1];
+      const style  = (row.querySelector('[data-panel-style]')?.value) || SEED.style[0];
+      const railSize = (row.querySelector('[data-panel-rail]')?.value) || SEED.railSize[0];
+      const picketSize = (row.querySelector('[data-panel-picket]')?.value) || SEED.picketSize[0];
+      const widthIn = parseInt((row.querySelector('[data-panel-width] input')?.value)||'0',10) || 0;
+      const finialStyle = (row.querySelector('[data-panel-finial-style]')?.value) || SEED.finialStyles[0];
+      return { qty, height, style, railSize, picketSize, widthIn, finialStyle };
+    });
+  }
   function renderFinialsControls(card, data){
     const cont = card.querySelector('[data-finials]');
     if(!cont) return;
@@ -1202,16 +1371,80 @@ document.addEventListener('DOMContentLoaded', function(){
   function generateNotes(){
     syncStateFromDOM();
 
+    // --- PANEL REPLACEMENT helpers ---
+    const PANEL_PRICE = {
+      // keyed as: `${feet}ft|p${psize}|style`
+      // style key: 'base' for standard/extended (no finials); 'finials' when Extended Picket w/ Finials
+      '3|p1/2"|base': 59.91,
+      '3|p5/8"|base': 59.91,
+      '4|p1/2"|base': 64.48,
+      '4|p5/8"|base': 72.11,
+      '5|p1/2"|base': 66.39,
+      '5|p5/8"|base': 66.39,
+      '5|p1/2"|finials': 72.63,
+      '5|p5/8"|finials': 91.75,
+      '6|p1/2"|base': 76.35,
+      '6|p5/8"|base': 91.13,
+    };
+    function feetFromHeightStr(h){ const m = String(h||'').match(/(\d+)/); return m? parseInt(m[1],10):0; }
+    function pkey(feet, picketSize, style){
+      const ps = normalizeSize(picketSize);
+      const p = (ps==='1/2"')? 'p1/2"' : (ps==='5/8"'? 'p5/8"' : `p${ps}`);
+      const sKey = /Finials/i.test(style) ? 'finials' : 'base';
+      return `${feet}|${p}|${sKey}`;
+    }
+    function isPrefabEligible(widthIn, railSize, picketSize){
+      const rs = normalizeSize(railSize);
+      const ps = normalizeSize(picketSize);
+      return (parseInt(widthIn,10)||0) <= 96 && rs === '1"' && (ps==='1/2"' || ps==='5/8"');
+    }
+    function picketCountForWidth(widthIn, picketSize){
+      const gap = 3 + 15/16; // 3.9375
+      const ps = normalizeSize(picketSize);
+      const widths = { '1/2"': 0.5, '5/8"': 0.625, '3/4"': 0.75, '1"': 1 };
+      const pw = widths[ps] || 0.5;
+      const stride = pw + gap/12; // inches to feet then combine? keep inches to avoid rounding
+      // Work fully in inches
+      const strideIn = (pw*1) * 1.0 + 3.9375; // picket width inches + gap inches
+      return Math.max(1, Math.floor( (parseFloat(widthIn)||0 + 3.9375) / strideIn ));
+    }
+
     const lines = [];
     const totals = {
       length:0, hardscape:0, trim:0, digOut:0, finials:0, caps:0,
       wiPickets:0, wiPatches:0, wiRails:0,
       posts2x2:0, posts3x3:0, postsRealign2x2:0, postsRealign3x3:0,
       walkGates:0, walkRealign:0, walkHardware:0, walkRebuild:0,
-      walkGateAdds:0
+      walkGateAdds:0,
+      panelsPrefab:0, panelsCustom:0
     };
 
     state.sections.forEach((s, idx)=>{
+      // PANEL REPLACEMENTS (per-row)
+      const panelArr = Array.isArray(s.panels) ? s.panels : [];
+      if(panelArr.length){ lines.push(`- Panel replacements:`); }
+      panelArr.forEach(p=>{
+        const q = parseInt(p?.qty||0,10)||0; if(!q) return;
+        const feet = feetFromHeightStr(p.height);
+        const eligible = isPrefabEligible(p.widthIn, p.railSize, p.picketSize);
+        const isFin = /Finials/i.test(p.style);
+        const key = pkey(feet, p.picketSize, p.style);
+        lines.push(`  - ${q} × ${p.widthIn||0}" wide panel — ${p.height}, ${p.style}, rails ${p.railSize}, pickets ${p.picketSize} ${eligible?'(prefab eligible)':'(build on site)'}`);
+        // Labor
+        if(eligible){ manHours += q * 0.5; totals.panelsPrefab += q; }
+        else        { manHours += q * 1.5; totals.panelsCustom += q; }
+
+        // Materials / Costing accumulators handled after loop below
+        // Store a scratch list on section to pick up later
+        if(!s._panelCalc) s._panelCalc = []; s._panelCalc.push({
+          qty:q, feet, eligible, style:p.style, picketSize:p.picketSize, railSize:p.railSize, widthIn: parseInt(p.widthIn,10)||0, finialStyle: p.finialStyle
+        });
+
+        if(isFin && !eligible){
+          // custom build w/ finials -> add 26 per panel to materials
+          addMat(materials, `finials - Cast Iron - ${p.finialStyle} (${p.picketSize})`, q*26);
+        }
+      });
       const title  = s.label ? `Section ${idx+1} - ${s.label}` : `Section ${idx+1}`;
       const picket = s.picketHeight ? `${s.picketSize} (height ${s.picketHeight} in)` : `${s.picketSize}`;
 
@@ -1340,6 +1573,8 @@ document.addEventListener('DOMContentLoaded', function(){
       if (t.walkHardware)  lines.push(`- Walk gate hardware replacements: ${t.walkHardware}`);
       if (t.walkRebuild)   lines.push(`- Walk gates to rebuild: ${t.walkRebuild}`);
       if (t.walkGateAdds)  lines.push(`- Walk gates to add: ${t.walkGateAdds}`);
+      if (t.panelsPrefab) lines.push(`- Prefab panels to install: ${t.panelsPrefab}`);
+      if (t.panelsCustom) lines.push(`- Panels to custom-build: ${t.panelsCustom}`);
     }
 
     // ==== Materials aggregation ====
@@ -1553,6 +1788,35 @@ document.addEventListener('DOMContentLoaded', function(){
       });
     });
 
+    // ===== Panel purchase vs build materials & direct costs =====
+    let costPanels = 0;
+    state.sections.forEach(s=>{
+      const lst = s._panelCalc || [];
+      lst.forEach(p=>{
+        if(p.eligible){
+          const price = PANEL_PRICE[pkey(p.feet, p.picketSize, p.style)];
+          const unit = (typeof price==='number') ? price : 0;
+          costPanels += p.qty * unit;
+          addMat(materials, `prefab fence panel ${p.height} ${/Finials/i.test(p.style)?'(finials)':''} (${p.picketSize})`, p.qty);
+          // No extra raw steel for prefab
+        } else {
+          // Build on site: rails (2 per panel) and pickets per width
+          const totalRailInches = 2 * p.widthIn * p.qty; // two horizontals
+          const railFeet = totalRailInches / 12;
+          const railSticks = Math.ceil(railFeet / 12);
+          addMat(materials, `12ft rail sticks (${p.railSize})`, railSticks);
+
+          const picketsPerPanel = picketCountForWidth(p.widthIn, p.picketSize);
+          // assume picket height = selected panel height in inches (fallback 54)
+          let ph = p.feet>0 ? p.feet*12 : 54;
+          const perStick = Math.max(1, Math.floor(144 / ph));
+          const totalPickets = picketsPerPanel * p.qty;
+          const picketSticks = Math.ceil(totalPickets / perStick);
+          addMat(materials, `12ft picket sticks (${p.picketSize})`, picketSticks);
+        }
+      });
+    });
+
     // ===== Costing =====
     let unpriced = false;
     const matBreak = [];
@@ -1567,6 +1831,11 @@ document.addEventListener('DOMContentLoaded', function(){
         matBreak.push(`  - ${label}: ${qty} x $${money(unit)} = $${money(c)}`);
       }
     });
+
+    if(costPanels>0){
+      costMaterials += costPanels;
+      matBreak.push('  - Prefab fence panels: $'+money(costPanels));
+    }
 
     if(paintGallons>0){
       const c = paintGallons * PRICE.paintGallon;
@@ -1751,6 +2020,8 @@ document.addEventListener('DOMContentLoaded', function(){
     if (totals.finials > 0)         sub.push('- Finials to replace: '+totals.finials);
     if (totals.caps > 0)            sub.push('- Post caps to replace: '+totals.caps);
     if (totals.digOut > 0)          sub.push('- Dig out: '+totals.digOut+' lf');
+    if (totals.panelsPrefab > 0)    sub.push('- Prefab panels to install: '+totals.panelsPrefab);
+    if (totals.panelsCustom > 0)    sub.push('- Panels to custom-build: '+totals.panelsCustom);
     if (paintLenTotal > 0)          sub.push('- Scrape off loose rust and debris, then hand paint '+paintLenTotal+' ft of fence');
 
     if (notesSubEl) { notesSubEl.value = sub.join('\n'); }
