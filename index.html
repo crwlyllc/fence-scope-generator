@@ -77,6 +77,25 @@
   .sp-hint{font-size:12px;color:var(--sp-muted);margin-top:6px}
   .sp-divider{height:1px;background:var(--sp-border);margin:12px 0}
   .sp-chip{border:1px dashed var(--sp-border);padding:4px 8px;border-radius:999px;font-size:12px;color:var(--sp-muted)}
+  /* Floating back-to-top button */
+  .sp-top{
+    position:fixed;
+    right:16px;
+    bottom:16px;
+    z-index:9999;
+    border:1px solid var(--sp-border);
+    background:var(--sp-card);
+    color:var(--sp-ink);
+    padding:10px 12px;
+    border-radius:999px;
+    font-weight:800;
+    box-shadow:0 2px 6px rgba(0,0,0,.08);
+    cursor:pointer;
+  }
+  .sp-top:active{ transform:translateY(1px); }
+  @media(max-width:719px){
+    .sp-top{ right:12px; bottom:12px; }
+  }
 </style>
 
 <div id="sp-scope">
@@ -123,7 +142,7 @@
   </div>
 </div>
 
-
+<button class="sp-top" id="sp-top-btn" type="button" aria-label="Back to top">↑ Top</button>
 <script src="https://cdn.jsdelivr.net/npm/iframe-resizer/js/iframeResizer.contentWindow.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
@@ -1422,6 +1441,9 @@ document.addEventListener('DOMContentLoaded', function(){
 
     notesEl.value = fullNotes.join('\n');
     outputEl.style.display = 'grid';
+    if (window.parentIFrame && typeof window.parentIFrame.size === 'function') {
+      try { window.parentIFrame.size(); } catch(e){}
+    }
     scrollTo(outputEl);
     persist();
   }
@@ -1471,6 +1493,11 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('sp-copy').addEventListener('click', copyNotes);
   document.getElementById('sp-copy-sub').addEventListener('click', copySubNotes);
   document.getElementById('sp-reset').addEventListener('click', resetAll);
+
+  const backTopBtn = document.getElementById('sp-top-btn');
+  if (backTopBtn){
+    backTopBtn.addEventListener('click', ()=> window.scrollTo({ top: 0, behavior: 'smooth' }));
+  }
 
   if(!restore()){ addSection(); }
 })();
