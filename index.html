@@ -1742,7 +1742,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if (totals.digOut > 0)          sub.push('- Dig out: '+totals.digOut+' lf');
     if (paintLenTotal > 0)          sub.push('- Scrape off loose rust and debris, then hand paint '+paintLenTotal+' ft of fence');
 
-    if (notesSubEl) { notesSubEl.value = sub.join('\\n'); }
+    if (notesSubEl) { notesSubEl.value = sub.join('\n'); }
 
     const crewCost = laborCost(crew);
     const directCosts = crewCost + costMaterials;
@@ -1775,7 +1775,7 @@ document.addEventListener('DOMContentLoaded', function(){
       : lines;
     const fullNotes = [...outLines, '', ...cost];
 
-    notesEl.value = fullNotes.join('\\n');
+    notesEl.value = fullNotes.join('\n');
     outputEl.style.display = 'grid';
     if (window.parentIFrame && typeof window.parentIFrame.size === 'function') {
       try { window.parentIFrame.size(); } catch(e){}
