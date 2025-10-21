@@ -105,7 +105,7 @@
       <div class="sp-actions">
         <button class="sp-btn ghost" id="sp-reset" type="button">Reset</button>
         <button class="sp-btn" id="sp-add" type="button">+ Add Section</button>
-        <button class="="sp-btn primary" id="sp-complete" type="button">Complete → Generate Notes</button>
+        <button class="sp-btn primary" id="sp-complete" type="button">Complete → Generate Notes</button>
       </div>
     </div>
 
@@ -684,6 +684,13 @@ document.addEventListener('DOMContentLoaded', function(){
     renderFinialsControls(card, data);
     // NEW: render cap rows
     renderCapsControls(card, data);
+    const toggleBtn = card.querySelector('.sp-toggle');
+    const isCollapsed = Boolean(data.collapsed);
+    card.classList.toggle('is-collapsed', isCollapsed);
+    if(toggleBtn){
+      toggleBtn.textContent = isCollapsed ? 'Expand' : 'Collapse';
+      toggleBtn.setAttribute('aria-expanded', (!isCollapsed).toString());
+    }
   // === NEW: cap row rendering & persistence ===
   function renderCapsControls(card, data){
     const cont = card.querySelector('[data-caps]');
@@ -783,13 +790,6 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
 
-    const toggleBtn = card.querySelector('.sp-toggle');
-    const isCollapsed = Boolean(data.collapsed);
-    card.classList.toggle('is-collapsed', isCollapsed);
-    if(toggleBtn){
-      toggleBtn.textContent = isCollapsed ? 'Expand' : 'Collapse';
-      toggleBtn.setAttribute('aria-expanded', (!isCollapsed).toString());
-    }
   }
 
   // ===== Rails helpers/handlers =====
