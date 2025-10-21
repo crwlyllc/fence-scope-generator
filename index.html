@@ -175,6 +175,10 @@ document.addEventListener('DOMContentLoaded', function(){
     // NEW: finials
     finialStyles:["Quad Star","Banana Split","Boy Scout","Ball"],
     finialMaterials:["Cast Iron","Aluminum","Plastic"],
+    // NEW: post caps
+    capStyles:["Pyramid","Pressed","Ball"],
+    capMaterials:["Cast Iron","Plastic","Metal"],
+    capPostSizes:["2x2","3x3","4x4"],
   };
 
   const GATE = {
@@ -330,6 +334,16 @@ document.addEventListener('DOMContentLoaded', function(){
           </div>
         </div>
 
+        <!-- NEW: Post Cap replacements -->
+        <div class="sp-field col-12">
+          <label class="sp-label">Post Cap Replacements</label>
+          <div data-caps></div>
+          <div class="sp-row" style="margin-top:6px">
+            <button class="sp-btn ghost" type="button" data-cap-add>+ Add Cap Group</button>
+            <span class="sp-hint">Each cap adds ~20 seconds of labor. Pricing varies by size & style.</span>
+          </div>
+        </div>
+
         <!-- Walk Gates (existing) -->
         <div class="sp-field col-3">
           <label class="sp-label"># Walk Gates</label>
@@ -467,6 +481,8 @@ document.addEventListener('DOMContentLoaded', function(){
 
       // NEW: Finials
       finials: [],
+      // NEW: Post Caps
+      caps: [],
 
       ...data
     });
@@ -527,6 +543,20 @@ document.addEventListener('DOMContentLoaded', function(){
       });
     }
 
+    // NEW: Caps (dynamic rows)
+    const caps = [];
+    const capCont = card.querySelector('[data-caps]');
+    if (capCont){
+      const rows = Array.from(capCont.querySelectorAll('[data-cap-row]'));
+      rows.forEach(row => {
+        const qty = parseInt((row.querySelector('[data-cap-qty] input')?.value)||'0',10) || 0;
+        const style = (row.querySelector('[data-cap-style]')?.value) || (SEED.capStyles && SEED.capStyles[0]);
+        const material = (row.querySelector('[data-cap-material]')?.value) || (SEED.capMaterials && SEED.capMaterials[0]);
+        const postSize = (row.querySelector('[data-cap-post]')?.value) || (SEED.capPostSizes && SEED.capPostSizes[0]);
+        if(qty>0){ caps.push({ qty, style, material, postSize }); }
+      });
+    }
+
     return {
       id,
       label: val('label').trim(),
@@ -576,6 +606,8 @@ document.addEventListener('DOMContentLoaded', function(){
 
       // NEW: finials
       finials,
+      // NEW: caps
+      caps,
 
       notes: val('notes').trim()
     };
@@ -650,6 +682,106 @@ document.addEventListener('DOMContentLoaded', function(){
 
     // NEW: render finial rows
     renderFinialsControls(card, data);
+    // NEW: render cap rows
+    renderCapsControls(card, data);
+  // === NEW: cap row rendering & persistence ===
+  function renderCapsControls(card, data){
+    const cont = card.querySelector('[data-caps]');
+    if(!cont) return;
+    cont.innerHTML = '';
+    const arr = Array.isArray(data.caps) ? data.caps : [];
+    arr.forEach((c)=>{
+      const row = document.createElement('div');
+      row.className = 'sp-grid';
+      row.setAttribute('data-cap-row','');
+      row.innerHTML = `
+        <div class="sp-field col-2">
+          <label class="sp-label">Qty</label>
+          <div class="sp-number" data-cap-qty>
+            <button type="button" class="sp-step" data-dir="-1" aria-label="decrement">–</button>
+            <input type="number" inputmode="numeric" step="1" min="0" value="${c.qty||0}" />
+            <button type="button" class="sp-step" data-dir="1" aria-label="increment">+</button>
+          </div>
+        </div>
+        <div class="sp-field col-3">
+          <label class="sp-label">Style</label>
+          <select class="sp-select" data-cap-style>${createSelect(SEED.capStyles)}</select>
+        </div>
+        <div class="sp-field col-3">
+          <label class="sp-label">Material</label>
+          <select class="sp-select" data-cap-material>${createSelect(SEED.capMaterials)}</select>
+        </div>
+        <div class="sp-field col-3">
+          <label class="sp-label">Post Size</label>
+          <select class="sp-select" data-cap-post>${createSelect(SEED.capPostSizes)}</select>
+        </div>
+        <div class="sp-field col-1" style="align-self:end">
+          <button class="sp-btn danger" data-cap-remove type="button">Remove</button>
+        </div>`;
+      cont.appendChild(row);
+      const styleSel = row.querySelector('[data-cap-style]'); if(styleSel) styleSel.value = c.style || SEED.capStyles[0];
+      const matSel   = row.querySelector('[data-cap-material]'); if(matSel) matSel.value = c.material || SEED.capMaterials[0];
+      const postSel  = row.querySelector('[data-cap-post]'); if(postSel) postSel.value = c.postSize || SEED.capPostSizes[0];
+    });
+
+    const addBtn = card.querySelector('[data-cap-add]');
+    if(addBtn){
+      addBtn.onclick = ()=>{
+        const secId = card.getAttribute('data-id');
+        const s = state.sections.find(x=>x.id===secId);
+        if(!s) return;
+        if(!Array.isArray(s.caps)) s.caps = [];
+        s.caps.push({ qty: 1, style: SEED.capStyles[0], material: SEED.capMaterials[0], postSize: SEED.capPostSizes[0] });
+        renderCapsControls(card, s);
+        attachNumberHandlers(card);
+        persist();
+      };
+    }
+
+    cont.addEventListener('click', (e)=>{
+      const btn = e.target.closest('[data-cap-remove]');
+      if(!btn) return;
+      const rows = Array.from(cont.querySelectorAll('[data-cap-row]'));
+      const row = btn.closest('[data-cap-row]');
+      const idx = rows.indexOf(row);
+      const secId = card.getAttribute('data-id');
+      const s = state.sections.find(x=>x.id===secId);
+      if(!s || !Array.isArray(s.caps)) return;
+      s.caps.splice(idx,1);
+      renderCapsControls(card, s);
+      attachNumberHandlers(card);
+      persist();
+    });
+
+    cont.addEventListener('change', (e)=>{
+      if(e.target.matches('[data-cap-style], [data-cap-material], [data-cap-post]')){
+        persistCapsFromDOM(card);
+        persist();
+      }
+    });
+
+    cont.addEventListener('input', (e)=>{
+      if(e.target.closest('[data-cap-qty]')){
+        persistCapsFromDOM(card);
+        persist();
+      }
+    });
+  }
+
+  function persistCapsFromDOM(card){
+    const secId = card.getAttribute('data-id');
+    const s = state.sections.find(x=>x.id===secId);
+    if(!s) return;
+    const cont = card.querySelector('[data-caps]');
+    const rows = cont ? Array.from(cont.querySelectorAll('[data-cap-row]')) : [];
+    s.caps = rows.map(row=>{
+      const qty = parseInt((row.querySelector('[data-cap-qty] input')?.value)||'0',10) || 0;
+      const style = (row.querySelector('[data-cap-style]')?.value) || SEED.capStyles[0];
+      const material = (row.querySelector('[data-cap-material]')?.value) || SEED.capMaterials[0];
+      const postSize = (row.querySelector('[data-cap-post]')?.value) || SEED.capPostSizes[0];
+      return { qty, style, material, postSize };
+    });
+  }
 
     const toggleBtn = card.querySelector('.sp-toggle');
     const isCollapsed = Boolean(data.collapsed);
@@ -1061,7 +1193,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const lines = [];
     const totals = {
-      length:0, hardscape:0, trim:0, digOut:0, finials:0,
+      length:0, hardscape:0, trim:0, digOut:0, finials:0, caps:0,
       wiPickets:0, wiPatches:0, wiRails:0,
       posts2x2:0, posts3x3:0, postsRealign2x2:0, postsRealign3x3:0,
       walkGates:0, walkRealign:0, walkHardware:0, walkRebuild:0,
@@ -1122,6 +1254,17 @@ document.addEventListener('DOMContentLoaded', function(){
         });
       }
 
+      // NEW: Caps
+      const capArr = Array.isArray(s.caps) ? s.caps : [];
+      const capCount = capArr.reduce((acc,c)=> acc + (parseInt(c?.qty||0,10) || 0), 0);
+      if(capCount){
+        lines.push(`- Post cap replacements: ${capCount}`);
+        capArr.forEach(c=>{
+          const q = parseInt(c?.qty||0,10) || 0; if(!q) return;
+          lines.push(`  - ${q} × ${c.material} ${c.style} caps for ${c.postSize} posts`);
+        });
+      }
+
       // Walk gate details
       const wg  = i(s.walkGates);
       const wgr = i(s.walkGatesRealign);
@@ -1161,6 +1304,7 @@ document.addEventListener('DOMContentLoaded', function(){
       totals.walkHardware+= wgh;
       totals.walkRebuild += wgb;
       totals.walkGateAdds += wga;
+      totals.caps        += capCount;
     });
 
     if (state.sections.length){
@@ -1172,6 +1316,7 @@ document.addEventListener('DOMContentLoaded', function(){
       if (t.trim)          lines.push(`- Trim: ${t.trim} lf`);
       if (t.digOut)        lines.push(`- Dig out: ${t.digOut} lf`);
       if (t.finials)       lines.push(`- Finials to replace: ${t.finials}`);
+      if (t.caps)          lines.push(`- Post caps to replace: ${t.caps}`);
       if (t.wiPickets)     lines.push(`- Pickets to replace: ${t.wiPickets}`);
       if (t.wiPatches)     lines.push(`- Rail patches: ${t.wiPatches}`);
       if (t.wiRails)       lines.push(`- Full rail replacements: ${t.wiRails}`);
@@ -1197,6 +1342,8 @@ document.addEventListener('DOMContentLoaded', function(){
     manHours += totals.digOut * (5/60);
     // Finials: 0.5 minutes each
     manHours += totals.finials * (0.5/60);
+    // Caps: 20 seconds each
+    manHours += totals.caps * (20/60);
     // Added gates: 4 hours each
     manHours += totals.walkGateAdds * 4;
 
@@ -1386,6 +1533,14 @@ document.addEventListener('DOMContentLoaded', function(){
         addMat(materials, `finials - ${f.material} - ${f.style} (${f.picketSize})`, q);
       });
     });
+    // Caps (descriptive labels) for MATERIALS list
+    state.sections.forEach(s=>{
+      const arr = Array.isArray(s.caps) ? s.caps : [];
+      arr.forEach(c=>{
+        const q = parseInt(c?.qty||0,10) || 0; if(!q) return;
+        addMat(materials, `caps - ${c.material} - ${c.style} (${c.postSize})`, q);
+      });
+    });
 
     // ===== Costing =====
     let unpriced = false;
@@ -1485,6 +1640,32 @@ document.addEventListener('DOMContentLoaded', function(){
       matBreak.push('  - Replacement finials: '+finialsTotalForCost+' x $'+money(finialsPricedUnit)+' = $'+money(c));
     }
 
+    // NEW: Caps cost by size/style
+    const capLabelRe = /^caps - (.+?) - (.+?) \((.+?)\)$/; // material, style, postSize
+    Object.entries(materials).forEach(([label, qty])=>{
+      const m = label.match(capLabelRe);
+      if(!m) return;
+      const style = m[2];
+      const postSize = m[3];
+      let unit = 0;
+      // Normalize style to handle typos like "bal" -> "ball"
+      const styleNorm = String(style||'').toLowerCase();
+      const isBall = /ball/.test(styleNorm);
+      if(postSize === '2x2'){
+        unit = isBall ? 4 : 1;
+      } else if(postSize === '3x3'){
+        unit = isBall ? 7 : 2;
+      } else if(postSize === '4x4'){
+        unit = isBall ? 15 : 8;
+      } else {
+        unit = 0;
+        unpriced = true;
+      }
+      const c = qty * unit;
+      costMaterials += c;
+      matBreak.push(`  - ${label}: ${qty} x $${money(unit)} = $${money(c)}`);
+    });
+
     // Labor + totals
     const lengthHours = state.sections.reduce((acc, s)=>{
       if (s.painting !== 'Paint Section') return acc;
@@ -1557,6 +1738,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if (totals.walkRebuild > 0)     sub.push('- Walk gates to rebuild: '+totals.walkRebuild);
     if (totals.walkGateAdds > 0)    sub.push('- Walk gates to add: '+totals.walkGateAdds);
     if (totals.finials > 0)         sub.push('- Finials to replace: '+totals.finials);
+    if (totals.caps > 0)            sub.push('- Post caps to replace: '+totals.caps);
     if (totals.digOut > 0)          sub.push('- Dig out: '+totals.digOut+' lf');
     if (paintLenTotal > 0)          sub.push('- Scrape off loose rust and debris, then hand paint '+paintLenTotal+' ft of fence');
 
