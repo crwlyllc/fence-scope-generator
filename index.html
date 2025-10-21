@@ -1418,33 +1418,10 @@ document.addEventListener('DOMContentLoaded', function(){
       walkGateAdds:0,
       panelsPrefab:0, panelsCustom:0
     };
+    const materials = {};
+    let manHours = 0;
 
     state.sections.forEach((s, idx)=>{
-      // PANEL REPLACEMENTS (per-row)
-      const panelArr = Array.isArray(s.panels) ? s.panels : [];
-      if(panelArr.length){ lines.push(`- Panel replacements:`); }
-      panelArr.forEach(p=>{
-        const q = parseInt(p?.qty||0,10)||0; if(!q) return;
-        const feet = feetFromHeightStr(p.height);
-        const eligible = isPrefabEligible(p.widthIn, p.railSize, p.picketSize);
-        const isFin = /Finials/i.test(p.style);
-        const key = pkey(feet, p.picketSize, p.style);
-        lines.push(`  - ${q} × ${p.widthIn||0}" wide panel — ${p.height}, ${p.style}, rails ${p.railSize}, pickets ${p.picketSize} ${eligible?'(prefab eligible)':'(build on site)'}`);
-        // Labor
-        if(eligible){ manHours += q * 0.5; totals.panelsPrefab += q; }
-        else        { manHours += q * 1.5; totals.panelsCustom += q; }
-
-        // Materials / Costing accumulators handled after loop below
-        // Store a scratch list on section to pick up later
-        if(!s._panelCalc) s._panelCalc = []; s._panelCalc.push({
-          qty:q, feet, eligible, style:p.style, picketSize:p.picketSize, railSize:p.railSize, widthIn: parseInt(p.widthIn,10)||0, finialStyle: p.finialStyle
-        });
-
-        if(isFin && !eligible){
-          // custom build w/ finials -> add 26 per panel to materials
-          addMat(materials, `finials - Cast Iron - ${p.finialStyle} (${p.picketSize})`, q*26);
-        }
-      });
       const title  = s.label ? `Section ${idx+1} - ${s.label}` : `Section ${idx+1}`;
       const picket = s.picketHeight ? `${s.picketSize} (height ${s.picketHeight} in)` : `${s.picketSize}`;
 
@@ -1497,6 +1474,31 @@ document.addEventListener('DOMContentLoaded', function(){
           lines.push(`  - ${q} × ${f.material} ${f.style} on ${f.picketSize} pickets`);
         });
       }
+
+      // PANEL REPLACEMENTS (per-row)
+      const panelArr = Array.isArray(s.panels) ? s.panels : [];
+      if(panelArr.length){ lines.push(`- Panel replacements:`); }
+      panelArr.forEach(p=>{
+        const q = parseInt(p?.qty||0,10)||0; if(!q) return;
+        const feet = feetFromHeightStr(p.height);
+        const eligible = isPrefabEligible(p.widthIn, p.railSize, p.picketSize);
+        const isFin = /Finials/i.test(p.style);
+        lines.push(`  - ${q} × ${p.widthIn||0}" wide panel — ${p.height}, ${p.style}, rails ${p.railSize}, pickets ${p.picketSize} ${eligible?'(prefab eligible)':'(build on site)'}`);
+        // Labor
+        if(eligible){ manHours += q * 0.5; totals.panelsPrefab += q; }
+        else        { manHours += q * 1.5; totals.panelsCustom += q; }
+
+        // Materials / Costing accumulators handled after loop below
+        // Store a scratch list on section to pick up later
+        if(!s._panelCalc) s._panelCalc = []; s._panelCalc.push({
+          qty:q, feet, eligible, style:p.style, picketSize:p.picketSize, railSize:p.railSize, widthIn: parseInt(p.widthIn,10)||0, finialStyle: p.finialStyle
+        });
+
+        if(isFin && !eligible){
+          // custom build w/ finials -> add 26 per panel to materials
+          addMat(materials, `finials - Cast Iron - ${p.finialStyle} (${p.picketSize})`, q*26);
+        }
+      });
 
       // NEW: Caps
       const capArr = Array.isArray(s.caps) ? s.caps : [];
@@ -1582,7 +1584,7 @@ document.addEventListener('DOMContentLoaded', function(){
     let paintGallons = 0;
     let paintCans = 0;
 
-    let manHours = (totals.wiPickets*12 + totals.wiPatches*20 + totals.wiRails*30 + totals.posts2x2*60 + totals.posts3x3*90 + (totals.postsRealign2x2 + totals.postsRealign3x3)*30)/60;
+    manHours += (totals.wiPickets*12 + totals.wiPatches*20 + totals.wiRails*30 + totals.posts2x2*60 + totals.posts3x3*90 + (totals.postsRealign2x2 + totals.postsRealign3x3)*30)/60;
     manHours += totals.walkRealign * 1 + totals.walkHardware * 1 + totals.walkRebuild * 3;
     // Dig out: 5 minutes per LF
     manHours += totals.digOut * (5/60);
@@ -1592,8 +1594,6 @@ document.addEventListener('DOMContentLoaded', function(){
     manHours += totals.caps * (20/60);
     // Added gates: 4 hours each
     manHours += totals.walkGateAdds * 4;
-
-    const materials = {};
 
     // posts (2x2 by length)
     const posts2x2ByLenCalc = {};
