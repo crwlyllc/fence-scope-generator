@@ -293,6 +293,10 @@ document.addEventListener('DOMContentLoaded', function(){
           <label class="sp-label">LF to Trim</label>
           ${numberControl('trim','e.g., 6')}
         </div>
+        <div class="sp-field col-3">
+          <label class="sp-label">LF to Dig Out</label>
+          ${numberControl('digOut','e.g., 10')}
+        </div>
 
         <div class="sp-field col-3">
           <label class="sp-label"># Pickets to Replace</label>
@@ -518,6 +522,7 @@ document.addEventListener('DOMContentLoaded', function(){
       length: val('length'),
       hardscape: val('hardscape'),
       trim: val('trim'),
+      digOut: val('digOut'),
       wiPickets: val('wiPickets'),
       posts2x2: val('posts2x2'),
       posts3x3: val('posts3x3'),
@@ -588,6 +593,7 @@ document.addEventListener('DOMContentLoaded', function(){
     set('length', data.length||'');
     set('hardscape', data.hardscape||'');
     set('trim', data.trim||'');
+    set('digOut', data.digOut||'');
     set('wiPickets', data.wiPickets||'');
     set('posts2x2', data.posts2x2||'');
     set('posts3x3', data.posts3x3||'');
@@ -946,7 +952,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const lines = [];
     const totals = {
-      length:0, hardscape:0, trim:0,
+      length:0, hardscape:0, trim:0, digOut:0,
       wiPickets:0, wiPatches:0, wiRails:0,
       posts2x2:0, posts3x3:0, postsRealign2x2:0, postsRealign3x3:0,
       walkGates:0, walkRealign:0, walkHardware:0, walkRebuild:0,
@@ -984,6 +990,7 @@ document.addEventListener('DOMContentLoaded', function(){
       lines.push(`- Length: ${numOrDash(s.length)} ft`);
       if (s.hardscape > 0) lines.push(`- Over hardscape: ${s.hardscape} lf`);
       if (s.trim > 0)      lines.push(`- Trim: ${s.trim} lf`);
+      if (s.digOut > 0)   lines.push(`- Dig out: ${s.digOut} lf`);
 
       const i = (v)=> (parseInt(v||0,10) || 0);
       lines.push(`- Repairs:`);
@@ -1020,6 +1027,7 @@ document.addEventListener('DOMContentLoaded', function(){
       totals.length       += i(s.length);
       totals.hardscape    += i(s.hardscape);
       totals.trim         += i(s.trim);
+      totals.digOut       += i(s.digOut);
       totals.wiPickets    += i(s.wiPickets);
       totals.wiPatches    += sectionPatchTotal;
       totals.wiRails      += sectionReplTotal;
@@ -1041,6 +1049,7 @@ document.addEventListener('DOMContentLoaded', function(){
       lines.push(`- Length: ${t.length} ft`);
       if (t.hardscape)     lines.push(`- Over hardscape: ${t.hardscape} lf`);
       if (t.trim)          lines.push(`- Trim: ${t.trim} lf`);
+      if (t.digOut)        lines.push(`- Dig out: ${t.digOut} lf`);
       if (t.wiPickets)     lines.push(`- Pickets to replace: ${t.wiPickets}`);
       if (t.wiPatches)     lines.push(`- Rail patches: ${t.wiPatches}`);
       if (t.wiRails)       lines.push(`- Full rail replacements: ${t.wiRails}`);
@@ -1062,6 +1071,8 @@ document.addEventListener('DOMContentLoaded', function(){
 
     let manHours = (totals.wiPickets*12 + totals.wiPatches*20 + totals.wiRails*30 + totals.posts2x2*60 + totals.posts3x3*90 + (totals.postsRealign2x2 + totals.postsRealign3x3)*30)/60;
     manHours += totals.walkRealign * 1 + totals.walkHardware * 1 + totals.walkRebuild * 3;
+    // Dig out labor: 5 minutes per LF
+    manHours += totals.digOut * (5/60);
     // NEW: 4 hours per added walk gate (1 person)
     manHours += totals.walkGateAdds * 4;
 
@@ -1428,6 +1439,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if (totals.walkHardware > 0)    sub.push('- Walk gate hardware replacements: '+totals.walkHardware);
     if (totals.walkRebuild > 0)     sub.push('- Walk gates to rebuild: '+totals.walkRebuild);
     if (totals.walkGateAdds > 0)    sub.push('- Walk gates to add: '+totals.walkGateAdds);
+    if (totals.digOut > 0)          sub.push('- Dig out: '+totals.digOut+' lf');
     if (paintLenTotal > 0)          sub.push('- Scrape off loose rust and debris, then hand paint '+paintLenTotal+' ft of fence');
 
     if (notesSubEl) { notesSubEl.value = sub.join('\n'); }
