@@ -146,6 +146,22 @@
 <script src="https://cdn.jsdelivr.net/npm/iframe-resizer/js/iframeResizer.contentWindow.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
+  // Set favicon
+  (function setFavicon(){
+    var href = 'https://cdn.prod.website-files.com/6594928d27a68dfdb6474334/66e8a1e05c9e00dea43e9a1b_Strong-Perimeter-Logo-32.jpg';
+    var head = document.head || document.getElementsByTagName('head')[0];
+    if (!head) return;
+    // Remove any existing icons
+    var olds = head.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]');
+    olds.forEach(function(el){ el.parentNode.removeChild(el); });
+    // Add new favicon
+    var link = document.createElement('link');
+    link.rel = 'icon';
+    link.type = 'image/jpeg';
+    link.sizes = '32x32';
+    link.href = href;
+    head.appendChild(link);
+  })();
 (function(){
   const $  = (sel, root=document) => root.querySelector(sel);
   const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
