@@ -161,7 +161,7 @@
         <div class="sp-field col-6">
           <label class="sp-label" for="hcp-api-base">API Base URL</label>
           <input class="sp-input" id="hcp-api-base" type="url" placeholder="https://api.housecallpro.com" />
-          <div class="sp-hint">Use the default unless you route through a proxy.</div>
+          <div class="sp-hint">Use the default unless you route through a proxy. If the direct API blocks the request, a built-in proxy fallback will be tried automatically.</div>
         </div>
         <div class="sp-field col-12">
           <label class="sp-label" for="hcp-search">Find Customer</label>
@@ -334,7 +334,13 @@ document.addEventListener('DOMContentLoaded', function(){
       base: 'https://api.housecallpro.com'
     };
 
-    const BASE_FALLBACKS = [];
+    const BASE_FALLBACKS = [
+      {
+        test: /^https:\/\/api\.housecallpro\.com/i,
+        fallback: 'https://cors.housecallpro.com/https://api.housecallpro.com',
+        reason: 'Direct API request blocked by browser CORS policy. Retrying via proxy…'
+      }
+    ];
 
     const state = {
       customers: [],
@@ -444,6 +450,7 @@ document.addEventListener('DOMContentLoaded', function(){
       const encoded = encodeURIComponent(query);
       const paths = [
         `/customers/search?query=${encoded}`,
+        `/customers?q=${encoded}`,
         `/customers?query=${encoded}`,
         `/customers?search=${encoded}`,
         `/customers?name=${encoded}`
