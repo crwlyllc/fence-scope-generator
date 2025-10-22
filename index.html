@@ -1634,7 +1634,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if (paintingSummary.full || paintingSummary.spot){
       const segments = [];
       if(paintingSummary.full){
-        let detail = `Prep and brush paint approximately ${paintingSummary.full} linear feet of fence`;
+        let detail = `Prep and apply gloss black oil-based paint to approximately ${paintingSummary.full} linear feet of fence`;
         const extras = [];
         if(paintingSummary.hardscape) extras.push(`${paintingSummary.hardscape} lf over hardscape`);
         if(paintingSummary.trim) extras.push(`${paintingSummary.trim} lf of trim detail`);
@@ -1642,7 +1642,7 @@ document.addEventListener('DOMContentLoaded', function(){
         segments.push(detail);
       }
       if(paintingSummary.spot){
-        segments.push(`Spot prep and paint weld areas along ${paintingSummary.spot} linear feet`);
+        segments.push(`Spot prep and apply gloss black oil-based paint to weld areas along ${paintingSummary.spot} linear feet`);
       }
       addServiceLine('Surface Preparation & Painting', segments.join('; ') + '.');
     }
