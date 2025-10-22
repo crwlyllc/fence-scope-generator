@@ -160,7 +160,7 @@
         </div>
         <div class="sp-field col-6">
           <label class="sp-label" for="hcp-api-base">API Base URL</label>
-          <input class="sp-input" id="hcp-api-base" type="url" placeholder="https://api.housecallpro.com/v2" />
+          <input class="sp-input" id="hcp-api-base" type="url" placeholder="https://api.housecallpro.com" />
           <div class="sp-hint">Use the default unless you route through a proxy.</div>
         </div>
         <div class="sp-field col-12">
@@ -331,16 +331,10 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const DEFAULTS = {
       key: '7512817f855d4a13b8754d31790e08b3',
-      base: 'https://api.housecallpro.com/v2'
+      base: 'https://api.housecallpro.com'
     };
 
-    const BASE_FALLBACKS = [
-      {
-        test: /^https?:\/\/api\.housecallpro\.com\/?(v2)?$/i,
-        fallback: 'https://cors.housecallpro.com/v2',
-        reason: 'Direct Housecall Pro API blocked by CORS. Retrying via proxy…'
-      }
-    ];
+    const BASE_FALLBACKS = [];
 
     const state = {
       customers: [],
@@ -738,7 +732,11 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 
     function sanitizeBase(value){
-      return String(value || '').trim().replace(/\/+$/, '') || '';
+      const trimmed = String(value || '').trim();
+      if (!trimmed) return '';
+      const withoutTrailingSlash = trimmed.replace(/\/+$/, '');
+      const withoutVersion = withoutTrailingSlash.replace(/\/v2$/i, '');
+      return withoutVersion || '';
     }
 
     function getApiKey(){
@@ -1040,7 +1038,11 @@ document.addEventListener('DOMContentLoaded', function(){
       if (!els.apiBase) return;
       const stored = safeGet(STORAGE.base);
       if (stored){
-        els.apiBase.value = stored;
+        const normalized = sanitizeBase(stored) || DEFAULTS.base;
+        els.apiBase.value = normalized;
+        if (normalized !== stored){
+          safeStore(STORAGE.base, normalized);
+        }
       } else {
         els.apiBase.value = DEFAULTS.base;
       }
