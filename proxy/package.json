@@ -1,0 +1,14 @@
+{
+  "name": "hcp-proxy",
+  "version": "1.0.0",
+  "description": "Minimal HTTP proxy for Housecall Pro API requests.",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "NODE_ENV=development node server.js"
+  },
+  "keywords": ["housecall", "proxy"],
+  "author": "",
+  "license": "MIT"
+}
