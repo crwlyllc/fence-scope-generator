@@ -161,7 +161,7 @@
         <div class="sp-field col-6">
           <label class="sp-label" for="hcp-api-base">API Base URL</label>
           <input class="sp-input" id="hcp-api-base" type="url" placeholder="https://api.housecallpro.com" />
-          <div class="sp-hint">Use the default unless you route through a proxy. If the direct API blocks the request, a built-in proxy fallback will be tried automatically.</div>
+          <div class="sp-hint">Default points to <code>/api/hcp</code> on this site. Update if your proxy lives elsewhere (for example, on Cloud Run).</div>
         </div>
         <div class="sp-field col-12">
           <label class="sp-label" for="hcp-search">Find Customer</label>
@@ -330,17 +330,11 @@ document.addEventListener('DOMContentLoaded', function(){
     };
 
     const DEFAULTS = {
-      key: '7512817f855d4a13b8754d31790e08b3',
-      base: 'https://api.housecallpro.com'
+      key: '',
+      base: '/api/hcp'
     };
 
-    const BASE_FALLBACKS = [
-      {
-        test: /^https:\/\/api\.housecallpro\.com/i,
-        fallback: 'https://cors.housecallpro.com/https://api.housecallpro.com',
-        reason: 'Direct API request blocked by browser CORS policy. Retrying via proxy…'
-      }
-    ];
+    const BASE_FALLBACKS = [];
 
     const state = {
       customers: [],
@@ -389,10 +383,10 @@ document.addEventListener('DOMContentLoaded', function(){
       const key = (els.apiKey.value || '').trim();
       if (key){
         safeStore(STORAGE.key, key);
-        updateStatus('API key saved.', 'success');
+        updateStatus('API key saved for proxy requests.', 'success');
       } else {
         safeRemove(STORAGE.key);
-        updateStatus('API key cleared. Add a key to search.', 'warn');
+        updateStatus('API key cleared. Requests will rely on proxy credentials.', 'info');
       }
     }
 
@@ -402,11 +396,11 @@ document.addEventListener('DOMContentLoaded', function(){
       if (value){
         safeStore(STORAGE.base, value);
         els.apiBase.value = value;
-        updateStatus('API base saved.', 'info');
+        updateStatus('Proxy base saved.', 'info');
       } else {
         safeRemove(STORAGE.base);
         els.apiBase.value = DEFAULTS.base;
-        updateStatus('Using default API base.', 'info');
+        updateStatus('Using default proxy base.', 'info');
       }
     }
 
@@ -746,6 +740,29 @@ document.addEventListener('DOMContentLoaded', function(){
       return withoutVersion || '';
     }
 
+    function hasAuthScheme(key){
+      return /^\s*(?:basic|bearer)\s+/i.test(String(key || ''));
+    }
+
+    function determineAuthMode(key){
+      if (!key) return 'bearer';
+      return /^\s*basic\s+/i.test(key) ? 'basic' : 'bearer';
+    }
+
+    function formatAuthorization(key){
+      if (!key) return '';
+      const trimmed = key.trim();
+      return /^\s*(?:basic|bearer)\s+/i.test(trimmed)
+        ? trimmed
+        : `Bearer ${trimmed}`;
+    }
+
+    function extractApiToken(key){
+      if (!key) return '';
+      const match = key.trim().match(/^\s*(?:basic|bearer)\s+(.+)$/i);
+      return match ? match[1].trim() : key.trim();
+    }
+
     function getApiKey(){
       return (els.apiKey && els.apiKey.value ? els.apiKey.value.trim() : '') || '';
     }
@@ -774,16 +791,20 @@ document.addEventListener('DOMContentLoaded', function(){
 
     async function hcpRequest(path, options){
       const key = getApiKey();
-      if (!key){
-        throw new Error('Add your Housecall Pro API key to use this feature.');
-      }
       const baseCandidates = resolveBaseCandidates(getBaseUrl());
       const normalizedPath = path.startsWith('/') ? path : `/${path}`;
       const init = Object.assign({ method: 'GET' }, options || {});
       init.headers = Object.assign({
         'Accept': 'application/json',
-        'Authorization': `Bearer ${key}`
+        'X-Hcp-Auth-Mode': determineAuthMode(key)
       }, init.headers || {});
+      const token = extractApiToken(key);
+      if (token){
+        init.headers['Authorization'] = formatAuthorization(key);
+        if (!hasAuthScheme(key)){
+          init.headers['X-Hcp-Api-Key'] = token;
+        }
+      }
       if (init.body && typeof init.body === 'object' && !(init.body instanceof FormData)){
         init.body = JSON.stringify(init.body);
         init.headers['Content-Type'] = 'application/json';
