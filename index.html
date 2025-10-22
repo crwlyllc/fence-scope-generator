@@ -334,6 +334,14 @@ document.addEventListener('DOMContentLoaded', function(){
       base: 'https://api.housecallpro.com/v2'
     };
 
+    const BASE_FALLBACKS = [
+      {
+        test: /^https?:\/\/api\.housecallpro\.com\/?(v2)?$/i,
+        fallback: 'https://cors.housecallpro.com/v2',
+        reason: 'Direct Housecall Pro API blocked by CORS. Retrying via proxy…'
+      }
+    ];
+
     const state = {
       customers: [],
       estimates: [],
@@ -738,8 +746,25 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 
     function getBaseUrl(){
-      const value = sanitizeBase(els.apiBase && els.apiBase.value ? els.apiBase.value : '') || DEFAULTS.base;
+      const stored = els.apiBase && els.apiBase.value ? els.apiBase.value : '';
+      const value = sanitizeBase(stored) || DEFAULTS.base;
       return value;
+    }
+
+    function resolveBaseCandidates(base){
+      const sanitized = sanitizeBase(base) || '';
+      const candidates = [];
+      if (sanitized) candidates.push(sanitized);
+      BASE_FALLBACKS.forEach(entry => {
+        if (!entry || !entry.fallback || !entry.test) return;
+        if (!entry.test.test(sanitized)) return;
+        const fallback = sanitizeBase(entry.fallback);
+        if (!fallback) return;
+        if (!candidates.includes(fallback)){
+          candidates.push(fallback);
+        }
+      });
+      return candidates.length ? candidates : [sanitizeBase(DEFAULTS.base)];
     }
 
     async function hcpRequest(path, options){
@@ -747,9 +772,8 @@ document.addEventListener('DOMContentLoaded', function(){
       if (!key){
         throw new Error('Add your Housecall Pro API key to use this feature.');
       }
-      const base = getBaseUrl();
+      const baseCandidates = resolveBaseCandidates(getBaseUrl());
       const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-      const url = `${base.replace(/\/+$/, '')}${normalizedPath}`;
       const init = Object.assign({ method: 'GET' }, options || {});
       init.headers = Object.assign({
         'Accept': 'application/json',
@@ -759,25 +783,46 @@ document.addEventListener('DOMContentLoaded', function(){
         init.body = JSON.stringify(init.body);
         init.headers['Content-Type'] = 'application/json';
       }
-      try {
-        const response = await fetch(url, init);
-        if (!response.ok){
-          const text = await response.text();
-          throw new Error(text ? `${response.status} ${response.statusText}: ${text}` : `Request failed with status ${response.status}`);
-        }
-        if (response.status === 204) return null;
-        const text = await response.text();
-        if (!text) return null;
+      let lastError = null;
+      for (let idx = 0; idx < baseCandidates.length; idx++){
+        const base = baseCandidates[idx];
+        const url = `${base.replace(/\/+$/, '')}${normalizedPath}`;
         try {
-          return JSON.parse(text);
-        } catch (err){
-          throw new Error('Received invalid JSON from Housecall Pro.');
+          const response = await fetch(url, init);
+          if (!response.ok){
+            const text = await response.text();
+            throw new Error(text ? `${response.status} ${response.statusText}: ${text}` : `Request failed with status ${response.status}`);
+          }
+          if (response.status === 204) return null;
+          const text = await response.text();
+          if (!text) return null;
+          try {
+            return JSON.parse(text);
+          } catch (err){
+            throw new Error('Received invalid JSON from Housecall Pro.');
+          }
+        } catch (error){
+          if (error instanceof TypeError){
+            lastError = new Error('Network error or request blocked. Check CORS or connectivity.');
+            if (idx < baseCandidates.length - 1){
+              notifyFallback(baseCandidates[idx + 1]);
+              continue;
+            }
+            throw lastError;
+          }
+          throw error;
         }
-      } catch (error){
-        if (error instanceof TypeError){
-          throw new Error('Network error or request blocked. Check CORS or connectivity.');
-        }
-        throw error;
+      }
+      if (lastError) throw lastError;
+      throw new Error('Request failed. No valid API base available.');
+    }
+
+    function notifyFallback(currentBase){
+      const match = BASE_FALLBACKS.find(entry => entry && entry.fallback && sanitizeBase(entry.fallback) === sanitizeBase(currentBase));
+      if (match && match.reason){
+        updateStatus(match.reason, 'warn');
+      } else {
+        updateStatus('Primary API request blocked. Retrying with a fallback base…', 'warn');
       }
     }
 
