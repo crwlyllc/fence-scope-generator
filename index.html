@@ -323,20 +323,6 @@ document.addEventListener('DOMContentLoaded', function(){
           </div>
         </div>
 
-        <div class="col-12 sp-divider"></div>
-
-        <!-- ========== GROUP: Panel Replacements ========== -->
-        <div class="sp-field col-12">
-          <label class="sp-label">Panel Replacements</label>
-          <div data-panels></div>
-          <div class="sp-row" style="margin-top:6px">
-            <button class="sp-btn ghost" type="button" data-panel-add>+ Add Panel Group</button>
-            <span class="sp-hint">Prefab panel eligible if width ≤ 96&quot; (8 ft), 1&quot; rails, and 1/2&quot; or 5/8&quot; pickets. Install = 30 min per panel; custom build+paint = 1.5 hr per panel.</span>
-          </div>
-        </div>
-
-        <div class="col-12 sp-divider"></div>
-
         <!-- ========== GROUP: Pickets & Finials ========== -->
         <div class="sp-field col-3">
           <label class="sp-label">Picket Size</label>
@@ -362,6 +348,18 @@ document.addEventListener('DOMContentLoaded', function(){
           <div class="sp-row" style="margin-top:6px">
             <button class="sp-btn ghost" type="button" data-finial-add>+ Add Finial Group</button>
             <span class="sp-hint">Each replacement adds ~30 seconds of labor. Unit cost: $1.25.</span>
+          </div>
+        </div>
+
+        <div class="col-12 sp-divider"></div>
+
+        <!-- ========== GROUP: Panel Replacements ========== -->
+        <div class="sp-field col-12">
+          <label class="sp-label">Panel Replacements</label>
+          <div data-panels></div>
+          <div class="sp-row" style="margin-top:6px">
+            <button class="sp-btn ghost" type="button" data-panel-add>+ Add Panel Group</button>
+            <span class="sp-hint">Prefab panel eligible if width ≤ 96&quot; (8 ft), 1&quot; rails, and 1/2&quot; or 5/8&quot; pickets. Install = 30 min per panel; custom build+paint = 1.5 hr per panel.</span>
           </div>
         </div>
 
@@ -1410,6 +1408,24 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 
     const lines = [];
+    const serviceLines = [];
+    function addServiceLine(name, desc){
+      if(!name || !desc) return;
+      serviceLines.push({ name: name.trim(), desc: desc.trim() });
+    }
+    function describeCount(count, singular, plural){
+      const n = parseInt(count,10) || 0;
+      if(n <= 0) return '';
+      const label = n === 1 ? singular : (plural || singular + 's');
+      return `${n} ${label}`;
+    }
+    function joinParts(parts){
+      const clean = parts.filter(Boolean);
+      if(clean.length === 0) return '';
+      if(clean.length === 1) return clean[0];
+      if(clean.length === 2) return `${clean[0]} and ${clean[1]}`;
+      return `${clean.slice(0,-1).join(', ')}, and ${clean[clean.length-1]}`;
+    }
     const totals = {
       length:0, hardscape:0, trim:0, digOut:0, finials:0, caps:0,
       wiPickets:0, wiPatches:0, wiRails:0,
@@ -1577,6 +1593,95 @@ document.addEventListener('DOMContentLoaded', function(){
       if (t.walkGateAdds)  lines.push(`- Walk gates to add: ${t.walkGateAdds}`);
       if (t.panelsPrefab) lines.push(`- Prefab panels to install: ${t.panelsPrefab}`);
       if (t.panelsCustom) lines.push(`- Panels to custom-build: ${t.panelsCustom}`);
+    }
+
+    const paintingSummary = state.sections.reduce((acc, s)=>{
+      const len = parseInt(s.length||0,10) || 0;
+      if(len > 0){
+        if(s.painting === 'Paint Section'){
+          acc.full += len;
+          acc.hardscape += parseInt(s.hardscape||0,10) || 0;
+          acc.trim += parseInt(s.trim||0,10) || 0;
+        } else if (s.painting === 'Spot Paint Welds'){
+          acc.spot += len;
+        }
+      }
+      return acc;
+    }, { full: 0, spot: 0, hardscape: 0, trim: 0 });
+
+    if (paintingSummary.full || paintingSummary.spot){
+      const segments = [];
+      if(paintingSummary.full){
+        let detail = `Prep and brush paint approximately ${paintingSummary.full} linear feet of fence`;
+        const extras = [];
+        if(paintingSummary.hardscape) extras.push(`${paintingSummary.hardscape} lf over hardscape`);
+        if(paintingSummary.trim) extras.push(`${paintingSummary.trim} lf of trim detail`);
+        if(extras.length) detail += ` (${extras.join(', ')})`;
+        segments.push(detail);
+      }
+      if(paintingSummary.spot){
+        segments.push(`Spot prep and paint weld areas along ${paintingSummary.spot} linear feet`);
+      }
+      addServiceLine('Surface Preparation & Painting', segments.join('; ') + '.');
+    }
+
+    if (totals.digOut > 0){
+      addServiceLine('Dig Out Encroaching Soil', `Remove built-up soil along ${totals.digOut} linear feet to expose fence bottoms and prevent corrosion.`);
+    }
+    if (totals.wiPickets > 0){
+      addServiceLine('Replace Damaged Pickets', `Cut out rusted members and weld in ${describeCount(totals.wiPickets, 'matching picket', 'matching pickets')} to match the existing pattern.`);
+    }
+    if (totals.wiPatches > 0){
+      addServiceLine('Rail Patch Repairs', `Cut out rusted sections and weld in ${describeCount(totals.wiPatches, 'steel patch', 'steel patches')} on horizontal rails.`);
+    }
+    if (totals.wiRails > 0){
+      addServiceLine('Full Rail Replacement', `Fabricate and install ${describeCount(totals.wiRails, 'new rail', 'new rails')} to match the original profile.`);
+    }
+    if (totals.posts2x2 > 0 || totals.posts3x3 > 0){
+      const parts = [];
+      if(totals.posts2x2 > 0) parts.push(describeCount(totals.posts2x2, '2x2 post', '2x2 posts'));
+      if(totals.posts3x3 > 0) parts.push(describeCount(totals.posts3x3, '3x3 post', '3x3 posts'));
+      const partText = joinParts(parts);
+      if(partText) addServiceLine('Replace Fence Posts', `Set new ${partText} in concrete and tie into existing panels.`);
+    }
+    if (totals.postsRealign2x2 > 0 || totals.postsRealign3x3 > 0){
+      const parts = [];
+      if(totals.postsRealign2x2 > 0) parts.push(describeCount(totals.postsRealign2x2, '2x2 post', '2x2 posts'));
+      if(totals.postsRealign3x3 > 0) parts.push(describeCount(totals.postsRealign3x3, '3x3 post', '3x3 posts'));
+      const partText = joinParts(parts);
+      if(partText) addServiceLine('Realign Leaning Posts', `Plumb and secure ${partText} without replacement.`);
+    }
+    if (totals.finials > 0){
+      addServiceLine('Finial Replacement', `Install ${describeCount(totals.finials, 'new finial', 'new finials')} to restore decorative picket tops.`);
+    }
+    if (totals.caps > 0){
+      addServiceLine('Post Cap Replacement', `Install ${describeCount(totals.caps, 'new post cap', 'new post caps')} to protect posts and match the existing style.`);
+    }
+    if (totals.panelsPrefab > 0){
+      addServiceLine('Install Prefab Panels', `Swap in ${describeCount(totals.panelsPrefab, 'prefabricated panel', 'prefabricated panels')} and secure them to existing posts.`);
+    }
+    if (totals.panelsCustom > 0){
+      addServiceLine('Build Custom Panels', `Fabricate and install ${describeCount(totals.panelsCustom, 'custom panel', 'custom panels')} on site to match the wrought iron design.`);
+    }
+    if (totals.walkRealign > 0){
+      addServiceLine('Realign Walk Gates', `Adjust and plumb ${describeCount(totals.walkRealign, 'walk gate', 'walk gates')} for smooth swing and latch.`);
+    }
+    if (totals.walkHardware > 0){
+      addServiceLine('Replace Walk Gate Hardware', `Install new latch and hinge hardware on ${describeCount(totals.walkHardware, 'walk gate', 'walk gates')}.`);
+    }
+    if (totals.walkRebuild > 0){
+      addServiceLine('Rebuild Walk Gates', `Rebuild ${describeCount(totals.walkRebuild, 'walk gate', 'walk gates')} with new frame and pickets to match the fence.`);
+    }
+    if (totals.walkGateAdds > 0){
+      addServiceLine('Add New Walk Gate', `Cut in and install ${describeCount(totals.walkGateAdds, 'new walk gate', 'new walk gates')} complete with posts, frame, and hardware.`);
+    }
+
+    if (serviceLines.length){
+      lines.push('');
+      lines.push('SERVICE LINE ITEMS (Customer Estimate)');
+      serviceLines.forEach(item=>{
+        lines.push(`- ${item.name}: ${item.desc}`);
+      });
     }
 
     // ==== Materials aggregation ====
