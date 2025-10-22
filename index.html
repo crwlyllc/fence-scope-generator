@@ -74,6 +74,13 @@
   .sp-small{font-size:12px;color:var(--sp-muted)}
   .sp-output{margin-top:18px; display:grid; gap:16px}
   .sp-output textarea{width:100%;min-height:200px;border:1px solid var(--sp-border);border-radius:12px;padding:12px;background:#fff;font-size:14px}
+  .sp-service-list{display:grid;gap:14px}
+  .sp-service-line{display:grid;gap:12px}
+  .sp-copy-row{display:flex;gap:8px;align-items:stretch}
+  .sp-copy-row .sp-input,
+  .sp-copy-row .sp-textarea{flex:1}
+  .sp-copy-row .sp-textarea{min-height:80px}
+  .sp-copy-row .sp-btn{white-space:nowrap}
   .sp-hint{font-size:12px;color:var(--sp-muted);margin-top:6px}
   .sp-divider{height:1px;background:var(--sp-border);margin:12px 0}
   .sp-chip{border:1px dashed var(--sp-border);padding:4px 8px;border-radius:999px;font-size:12px;color:var(--sp-muted)}
@@ -137,6 +144,17 @@
         </div>
         <textarea id="sp-notes-sub" readonly></textarea>
         <div class="sp-hint">Crew-facing summary: duration, materials, and total repairs.</div>
+      </div>
+
+      <div class="sp-card" id="sp-service-card" style="display:none">
+        <div class="sp-card-header">
+          <div class="sp-card-title">Service Line Items</div>
+          <div class="sp-row">
+            <button class="sp-btn" id="sp-copy-service" type="button" disabled>Copy All</button>
+          </div>
+        </div>
+        <div class="sp-service-list" id="sp-service-lines"></div>
+        <div class="sp-hint">Use the copy buttons to grab titles or descriptions individually.</div>
       </div>
     </div>
   </div>
@@ -202,6 +220,10 @@ document.addEventListener('DOMContentLoaded', function(){
   const outputEl   = $('#sp-output');
   const notesEl    = $('#sp-notes');
   const notesSubEl = $('#sp-notes-sub');
+  const serviceCardEl = $('#sp-service-card');
+  const serviceListEl = $('#sp-service-lines');
+  const serviceCopyAllBtn = $('#sp-copy-service');
+  let lastServiceLines = [];
 
   function uid(){ return 'sec_' + Math.random().toString(36).slice(2,9); }
 
@@ -1676,13 +1698,7 @@ document.addEventListener('DOMContentLoaded', function(){
       addServiceLine('Add New Walk Gate', `Cut in and install ${describeCount(totals.walkGateAdds, 'new walk gate', 'new walk gates')} complete with posts, frame, and hardware.`);
     }
 
-    if (serviceLines.length){
-      lines.push('');
-      lines.push('SERVICE LINE ITEMS (Customer Estimate)');
-      serviceLines.forEach(item=>{
-        lines.push(`- ${item.name}: ${item.desc}`);
-      });
-    }
+    renderServiceLineNotes(serviceLines);
 
     // ==== Materials aggregation ====
     let paintLenTotal = 0;
@@ -2171,26 +2187,170 @@ document.addEventListener('DOMContentLoaded', function(){
     persist();
   }
 
+  function renderServiceLineNotes(items){
+    lastServiceLines = Array.isArray(items) ? items.map(item=>({ ...item })) : [];
+
+    if(!serviceListEl || !serviceCardEl){
+      return;
+    }
+
+    serviceListEl.innerHTML = '';
+
+    if(!lastServiceLines.length){
+      serviceCardEl.style.display = 'none';
+      if(serviceCopyAllBtn){
+        serviceCopyAllBtn.disabled = true;
+        serviceCopyAllBtn.textContent = 'Copy All';
+      }
+      return;
+    }
+
+    serviceCardEl.style.display = 'block';
+    if(serviceCopyAllBtn){
+      serviceCopyAllBtn.disabled = false;
+      serviceCopyAllBtn.textContent = 'Copy All';
+    }
+
+    lastServiceLines.forEach((item, index)=>{
+      const lineEl = document.createElement('div');
+      lineEl.className = 'sp-service-line';
+      lineEl.dataset.index = String(index);
+
+      const titleField = document.createElement('div');
+      titleField.className = 'sp-field';
+      const titleLabel = document.createElement('label');
+      titleLabel.className = 'sp-label';
+      titleLabel.textContent = 'Line Item Title';
+      const titleRow = document.createElement('div');
+      titleRow.className = 'sp-copy-row';
+      const titleInput = document.createElement('input');
+      titleInput.className = 'sp-input';
+      titleInput.readOnly = true;
+      titleInput.value = item.name || '';
+      const titleBtn = document.createElement('button');
+      titleBtn.className = 'sp-btn ghost sp-copy-service';
+      titleBtn.type = 'button';
+      titleBtn.textContent = 'Copy';
+      titleBtn.dataset.text = item.name || '';
+      titleBtn.dataset.kind = 'title';
+      titleRow.appendChild(titleInput);
+      titleRow.appendChild(titleBtn);
+      titleField.appendChild(titleLabel);
+      titleField.appendChild(titleRow);
+
+      const descField = document.createElement('div');
+      descField.className = 'sp-field';
+      const descLabel = document.createElement('label');
+      descLabel.className = 'sp-label';
+      descLabel.textContent = 'Description';
+      const descRow = document.createElement('div');
+      descRow.className = 'sp-copy-row';
+      const descTextarea = document.createElement('textarea');
+      descTextarea.className = 'sp-textarea';
+      descTextarea.readOnly = true;
+      descTextarea.value = item.desc || '';
+      const descBtn = document.createElement('button');
+      descBtn.className = 'sp-btn ghost sp-copy-service';
+      descBtn.type = 'button';
+      descBtn.textContent = 'Copy';
+      descBtn.dataset.text = item.desc || '';
+      descBtn.dataset.kind = 'description';
+      descRow.appendChild(descTextarea);
+      descRow.appendChild(descBtn);
+      descField.appendChild(descLabel);
+      descField.appendChild(descRow);
+
+      lineEl.appendChild(titleField);
+      lineEl.appendChild(descField);
+
+      serviceListEl.appendChild(lineEl);
+    });
+  }
+
+  function copyTextToClipboard(text){
+    const value = (typeof text === 'string') ? text : String(text || '');
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function'){
+      return navigator.clipboard.writeText(value);
+    }
+
+    return new Promise((resolve, reject)=>{
+      const textarea = document.createElement('textarea');
+      textarea.value = value;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.top = '-9999px';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        const ok = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        if(ok) resolve();
+        else reject(new Error('Copy command was rejected.'));
+      } catch(err){
+        document.body.removeChild(textarea);
+        reject(err);
+      }
+    });
+  }
+
+  function flashButton(btn, message='Copied!', options){
+    if(!btn) return;
+    const opts = Object.assign({ revertMs: 1200, disable: true }, options || {});
+    const originalText = btn.textContent;
+    const originalDisabled = btn.disabled;
+    btn.textContent = message;
+    if(opts.disable){
+      btn.disabled = true;
+    }
+    window.setTimeout(()=>{
+      btn.textContent = originalText;
+      if(opts.disable){
+        btn.disabled = originalDisabled;
+      }
+    }, opts.revertMs);
+  }
+
+  function copyAllServiceLines(){
+    if(!lastServiceLines.length || !serviceCopyAllBtn){
+      return;
+    }
+    const text = lastServiceLines.map(item=>`${item.name}: ${item.desc}`).join('\n');
+    copyTextToClipboard(text)
+      .then(()=>flashButton(serviceCopyAllBtn))
+      .catch(()=>flashButton(serviceCopyAllBtn, 'Copy failed', { revertMs: 1600, disable: false }));
+  }
+
+  function handleServiceListClick(event){
+    const btn = event.target.closest('.sp-copy-service');
+    if(!btn){
+      return;
+    }
+    const text = btn.dataset && typeof btn.dataset.text !== 'undefined' ? btn.dataset.text : '';
+    copyTextToClipboard(text)
+      .then(()=>flashButton(btn))
+      .catch(()=>flashButton(btn, 'Copy failed', { revertMs: 1600, disable: false }));
+  }
+
   function numOrDash(v){ const n = parseInt(v,10); return isNaN(n)?'—':n; }
   function scrollTo(el){ el.scrollIntoView({behavior:'smooth', block:'start'}); }
 
   function copyNotes(){
-    notesEl.select();
-    document.execCommand('copy');
     const btn = document.getElementById('sp-copy');
-    const old = btn.textContent;
-    btn.textContent = 'Copied!';
-    setTimeout(()=>btn.textContent=old, 1200);
+    if(!notesEl || !btn) return;
+    notesEl.select();
+    copyTextToClipboard(notesEl.value)
+      .then(()=>flashButton(btn))
+      .catch(()=>flashButton(btn, 'Copy failed', { revertMs: 1600, disable: false }));
   }
 
   function copySubNotes(){
-    if(!notesSubEl) return;
-    notesSubEl.select();
-    document.execCommand('copy');
     const btn = document.getElementById('sp-copy-sub');
-    const old = btn.textContent;
-    btn.textContent = 'Copied!';
-    setTimeout(()=>btn.textContent = old, 1200);
+    if(!notesSubEl || !btn) return;
+    notesSubEl.select();
+    copyTextToClipboard(notesSubEl.value)
+      .then(()=>flashButton(btn))
+      .catch(()=>flashButton(btn, 'Copy failed', { revertMs: 1600, disable: false }));
   }
 
   const KEY = 'sp_scope_v1';
@@ -2206,12 +2366,15 @@ document.addEventListener('DOMContentLoaded', function(){
     localStorage.removeItem(KEY);
     render();
     outputEl.style.display='none';
+    renderServiceLineNotes([]);
   }
 
   document.getElementById('sp-add').addEventListener('click', ()=>{ addSection(); persist(); });
   document.getElementById('sp-complete').addEventListener('click', generateNotes);
   document.getElementById('sp-copy').addEventListener('click', copyNotes);
   document.getElementById('sp-copy-sub').addEventListener('click', copySubNotes);
+  if(serviceCopyAllBtn){ serviceCopyAllBtn.addEventListener('click', copyAllServiceLines); }
+  if(serviceListEl){ serviceListEl.addEventListener('click', handleServiceListClick); }
   document.getElementById('sp-reset').addEventListener('click', resetAll);
 
   const backTopBtn = document.getElementById('sp-top-btn');
