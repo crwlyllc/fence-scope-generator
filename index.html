@@ -1294,6 +1294,11 @@ document.addEventListener('DOMContentLoaded', function(){
     if(v === 'Extended Picket') return 1.75;
     return 1.5;
   }
+  function railPacePenalty(count){
+    const rails = parseInt(count, 10);
+    if(!rails || rails <= 2) return 0;
+    return (rails - 2) * 0.25;
+  }
   function puppyAdj(v){
     if(v === 'Puppy Pickets') return 0.25;
     if(v === 'Puppy Pickets w/ Finials') return 0.5;
@@ -2077,8 +2082,9 @@ document.addEventListener('DOMContentLoaded', function(){
       if (s.painting !== 'Paint Section') return acc;
       const len = parseInt(s.length||0,10) || 0;
       if(!len) return acc;
-      const denom = styleFactor(s.style) - puppyAdj(s.puppy);
-      const hours = (len/8) / Math.max(1, denom);
+      const railsPenalty = railPacePenalty(s.railsCount || (s.rails||[]).length || 0);
+      const denom = styleFactor(s.style) - puppyAdj(s.puppy) - railsPenalty;
+      const hours = (len/8) / Math.max(0.5, denom);
       return acc + hours;
     }, 0);
     const paintHardscapeLen = state.sections.reduce((acc,s)=> acc + ((s.painting==='Paint Section') ? (parseInt(s.hardscape||0,10)||0) : 0), 0);
