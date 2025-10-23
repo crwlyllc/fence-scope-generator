@@ -316,6 +316,7 @@ document.addEventListener('DOMContentLoaded', function(){
           <label class="sp-label">Painting</label>
           <select class="sp-select" data-field="painting">
             <option value="Paint Section">Paint Section</option>
+            <option value="Prime and Paint">Prime and Paint</option>
             <option value="Spot Paint Welds">Spot Paint Welds</option>
             <option value="None">None</option>
           </select>
@@ -1368,6 +1369,8 @@ document.addEventListener('DOMContentLoaded', function(){
   const PRICE = {
     paintGallon: 50,
     paintCan: 8,
+    primerGallon: 50,
+    primerCan: 8,
     concrete: 12,
     post2x2: { 8:18, 9:24 }
   };
@@ -1652,25 +1655,40 @@ document.addEventListener('DOMContentLoaded', function(){
     const paintingSummary = state.sections.reduce((acc, s)=>{
       const len = parseInt(s.length||0,10) || 0;
       if(len > 0){
+        const hardscape = parseInt(s.hardscape||0,10) || 0;
+        const trim = parseInt(s.trim||0,10) || 0;
         if(s.painting === 'Paint Section'){
-          acc.full += len;
-          acc.hardscape += parseInt(s.hardscape||0,10) || 0;
-          acc.trim += parseInt(s.trim||0,10) || 0;
+          acc.full.len += len;
+          acc.full.hardscape += hardscape;
+          acc.full.trim += trim;
+        } else if (s.painting === 'Prime and Paint'){
+          acc.primePaint.len += len;
+          acc.primePaint.hardscape += hardscape;
+          acc.primePaint.trim += trim;
         } else if (s.painting === 'Spot Paint Welds'){
           acc.spot += len;
         }
       }
       return acc;
-    }, { full: 0, spot: 0, hardscape: 0, trim: 0 });
+    }, { full: { len: 0, hardscape: 0, trim: 0 }, primePaint: { len: 0, hardscape: 0, trim: 0 }, spot: 0 });
 
-    if (paintingSummary.full || paintingSummary.spot){
+    if (paintingSummary.full.len || paintingSummary.primePaint.len || paintingSummary.spot){
       const segments = [];
-      if(paintingSummary.full){
-        let detail = `Prep and apply gloss black oil-based paint to approximately ${paintingSummary.full} linear feet of fence`;
+      if(paintingSummary.full.len){
+        let detail = `Prep and apply gloss black oil-based paint to approximately ${paintingSummary.full.len} linear feet of fence`;
         const extras = [];
-        if(paintingSummary.hardscape) extras.push(`${paintingSummary.hardscape} lf over hardscape`);
-        if(paintingSummary.trim) extras.push(`${paintingSummary.trim} lf of trim detail`);
+        if(paintingSummary.full.hardscape) extras.push(`${paintingSummary.full.hardscape} lf over hardscape`);
+        if(paintingSummary.full.trim) extras.push(`${paintingSummary.full.trim} lf of trim detail`);
         if(extras.length) detail += ` (${extras.join(', ')})`;
+        segments.push(detail);
+      }
+      if(paintingSummary.primePaint.len){
+        let detail = `Prime with red oxide primer, then apply gloss black oil-based paint to approximately ${paintingSummary.primePaint.len} linear feet of fence`;
+        const extras = [];
+        if(paintingSummary.primePaint.hardscape) extras.push(`${paintingSummary.primePaint.hardscape} lf over hardscape`);
+        if(paintingSummary.primePaint.trim) extras.push(`${paintingSummary.primePaint.trim} lf of trim detail`);
+        if(extras.length) detail += ` (${extras.join(', ')})`;
+        detail += ` with two mobilizations: prime on day one and return after cure for the finish coat`;
         segments.push(detail);
       }
       if(paintingSummary.spot){
@@ -1736,6 +1754,8 @@ document.addEventListener('DOMContentLoaded', function(){
     let paintLenTotal = 0;
     let paintGallons = 0;
     let paintCans = 0;
+    let primerGallons = 0;
+    let primerCans = 0;
 
     const weldRepairHours = (totals.wiPickets*12 + totals.wiPatches*20 + totals.wiRails*30 + totals.posts2x2*60 + totals.posts3x3*90 + (totals.postsRealign2x2 + totals.postsRealign3x3)*30)/60;
     manHours += weldRepairHours;
@@ -1919,22 +1939,33 @@ document.addEventListener('DOMContentLoaded', function(){
 
     // Paint estimates
     let totalLenPaint = 0;
+    let totalLenPrimePaint = 0;
     let totalLenSpot  = 0;
     state.sections.forEach(s=>{
       const len = (parseInt(s.length||0,10) || 0);
       if(!len) return;
-      if (s.painting === 'Paint Section') totalLenPaint += len;
-      else if (s.painting === 'Spot Paint Welds') totalLenSpot += len;
+      if (s.painting === 'Paint Section') {
+        totalLenPaint += len;
+      } else if (s.painting === 'Prime and Paint') {
+        totalLenPaint += len;
+        totalLenPrimePaint += len;
+      } else if (s.painting === 'Spot Paint Welds') {
+        totalLenSpot += len;
+      }
     });
     paintLenTotal = totalLenPaint;
     paintGallons  = Math.ceil(totalLenPaint / 100);
     if (paintGallons > 0) paintCans += Math.ceil(paintGallons * 0.5);
+    primerGallons = Math.ceil(totalLenPrimePaint / 100);
+    if (primerGallons > 0) primerCans += Math.ceil(primerGallons * 0.5);
     if (totalLenSpot > 0) {
       const unitsSpot = Math.ceil(totalLenSpot / 100);
       paintCans += Math.max(1, Math.ceil(unitsSpot * 0.5));
     }
     if (paintGallons > 0) addMat(materials, 'gallons of gloss black paint', paintGallons);
     if (paintCans > 0)    addMat(materials, 'spray cans (gloss black)', paintCans);
+    if (primerGallons > 0) addMat(materials, 'gallons of red oxide primer', primerGallons);
+    if (primerCans > 0)    addMat(materials, 'spray cans (red oxide primer)', primerCans);
 
     // Finials (descriptive labels) for MATERIALS list
     state.sections.forEach(s=>{
@@ -2011,6 +2042,16 @@ document.addEventListener('DOMContentLoaded', function(){
       const c = paintCans * PRICE.paintCan;
       costMaterials += c;
       matBreak.push('  - Paint (spray cans): '+paintCans+' x $'+money(PRICE.paintCan)+' = $'+money(c));
+    }
+    if(primerGallons>0){
+      const c = primerGallons * PRICE.primerGallon;
+      costMaterials += c;
+      matBreak.push('  - Red oxide primer (gallons): '+primerGallons+' x $'+money(PRICE.primerGallon)+' = $'+money(c));
+    }
+    if(primerCans>0){
+      const c = primerCans * PRICE.primerCan;
+      costMaterials += c;
+      matBreak.push('  - Red oxide primer (spray cans): '+primerCans+' x $'+money(PRICE.primerCan)+' = $'+money(c));
     }
 
     const concreteBagsMat = (materials['Maximizer bags of concrete']||0);
@@ -2112,22 +2153,26 @@ document.addEventListener('DOMContentLoaded', function(){
     });
 
     // Labor + totals
-    const lengthHours = state.sections.reduce((acc, s)=>{
-      if (s.painting !== 'Paint Section') return acc;
+    let paintingReturnTripHours = 0;
+    const paintingHours = state.sections.reduce((acc, s)=>{
+      if (s.painting !== 'Paint Section' && s.painting !== 'Prime and Paint') return acc;
       const len = parseInt(s.length||0,10) || 0;
       if(!len) return acc;
       const railsPenalty = railPacePenalty(s.railsCount || (s.rails||[]).length || 0);
       const denom = styleFactor(s.style) - puppyAdj(s.puppy) - railsPenalty;
-      const hours = (len/8) / Math.max(0.5, denom);
-      return acc + hours;
+      const baseHours = (len/8) / Math.max(0.5, denom);
+      const hardscapeHours = (parseInt(s.hardscape||0,10)||0) / 20;
+      const trimHours = (parseInt(s.trim||0,10)||0) / 50;
+      const passHours = baseHours + hardscapeHours + trimHours;
+      if (s.painting === 'Prime and Paint') {
+        paintingReturnTripHours += passHours;
+        return acc + (passHours * 2);
+      }
+      return acc + passHours;
     }, 0);
-    const paintHardscapeLen = state.sections.reduce((acc,s)=> acc + ((s.painting==='Paint Section') ? (parseInt(s.hardscape||0,10)||0) : 0), 0);
-    const paintTrimLen = state.sections.reduce((acc,s)=> acc + ((s.painting==='Paint Section') ? (parseInt(s.trim||0,10)||0) : 0), 0);
-    const paintingHours = lengthHours + (paintHardscapeLen/20) + (paintTrimLen/50);
     manHours += paintingHours;
     helperHours += paintingHours;
 
-    const trackedHours = welderHours + helperHours;
     function describeCrewSplit(welders, helpers){
       const parts = [];
       if(welders > 0){ parts.push(`${welders} ${welders === 1 ? 'welder' : 'welders'}`); }
@@ -2135,35 +2180,76 @@ document.addEventListener('DOMContentLoaded', function(){
       return parts.join(' + ');
     }
 
-    const crew = Math.ceil(manHours / 8);
-    let welderCount = 0;
-    if(crew > 0 && welderHours > 0){
-      const share = trackedHours > 0 ? welderHours / trackedHours : 1;
-      welderCount = Math.max(1, Math.round(crew * share));
-      welderCount = Math.min(welderCount, crew);
+    function computeCrewConfig(totalHours, welderH, helperH){
+      const crewCount = Math.ceil(totalHours / 8);
+      if(crewCount <= 0){
+        return { crew: 0, welders: 0, helpers: 0, mix: '' };
+      }
+      const tracked = Math.max(0, welderH) + Math.max(0, helperH);
+      let welders = 0;
+      if(welderH > 0){
+        const share = tracked > 0 ? welderH / tracked : 1;
+        welders = Math.max(1, Math.round(crewCount * share));
+        welders = Math.min(welders, crewCount);
+      }
+      let helpers = crewCount - welders;
+      if(helperH > 0 && helpers === 0 && crewCount > 1){
+        helpers = 1;
+        welders = Math.max(0, crewCount - helpers);
+      }
+      return { crew: crewCount, welders, helpers, mix: describeCrewSplit(welders, helpers) };
     }
-    let helperCount = crew > 0 ? Math.max(0, crew - welderCount) : 0;
-    if(helperHours > 0 && helperCount === 0 && crew > 1){
-      helperCount = 1;
-      welderCount = Math.max(0, crew - helperCount);
+
+    function formatCrewCount(count, mix){
+      if(count <= 0){
+        return 'TBD';
+      }
+      const label = count === 1 ? '1 guy' : `${count} guys`;
+      return mix ? `${label} (${mix})` : label;
     }
-    const crewSplitStr = describeCrewSplit(welderCount, helperCount);
-    const durationStr = crew > 0
-      ? `1 day for ${crew} ${crew===1?'guy':'guys'}${crewSplitStr ? ` (${crewSplitStr})` : ''}`
-      : 'TBD';
+
+    const primePaintScheduled = totalLenPrimePaint > 0;
+    const returnTripHours = paintingReturnTripHours;
+    const helperHoursReturnTrip = returnTripHours;
+    const day2Hours = primePaintScheduled ? returnTripHours : 0;
+    const day1Hours = primePaintScheduled ? Math.max(0, manHours - day2Hours) : manHours;
+    const helperHoursDay1 = Math.max(0, helperHours - helperHoursReturnTrip);
+
+    const day1Config = computeCrewConfig(day1Hours, welderHours, helperHoursDay1);
+    const day2Config = computeCrewConfig(day2Hours, 0, helperHoursReturnTrip);
+    const multiDay = primePaintScheduled && day2Config.crew > 0;
+    const crewSplitStr = day1Config.mix;
+
+    const durationLines = [];
+    if(multiDay){
+      durationLines.push(`Day 1: ${formatCrewCount(day1Config.crew, day1Config.mix)} — Prime with red oxide primer.`);
+      durationLines.push(`Day 2: ${formatCrewCount(day2Config.crew, day2Config.mix)} — Return after cure to apply finish coat.`);
+    } else if(day1Config.crew > 0) {
+      durationLines.push(`1 day for ${formatCrewCount(day1Config.crew, day1Config.mix)}`);
+    } else {
+      durationLines.push('Duration TBD');
+    }
 
     lines.push('');
     lines.push('CREW');
-    if(crew > 0){
-      lines.push(`- Day crew: ${crew} ${crew===1?'guy':'guys'}`);
-      if(crewSplitStr) lines.push(`- Mix: ${crewSplitStr}`);
+    if(day1Config.crew > 0){
+      if(multiDay){
+        lines.push(`- Day 1 crew: ${formatCrewCount(day1Config.crew, day1Config.mix)}`);
+        if(day2Config.crew > 0){
+          lines.push(`- Day 2 crew: ${formatCrewCount(day2Config.crew, day2Config.mix)}`);
+        }
+      } else {
+        lines.push(`- Day crew: ${formatCrewCount(day1Config.crew, day1Config.mix)}`);
+      }
+      if(crewSplitStr && !multiDay) lines.push(`- Mix: ${crewSplitStr}`);
+      if(primePaintScheduled) lines.push('- Schedule: Day 1 prime, Day 2 return to apply finish coat');
     } else {
       lines.push('- Day crew: TBD');
     }
 
     const sub = [];
     sub.push('JOB DURATION');
-    sub.push('- '+durationStr);
+    durationLines.forEach(line=> sub.push('- '+line));
     sub.push('');
     sub.push('MATERIALS');
     Object.keys(materials).sort((a,b)=>a.localeCompare(b)).forEach(label=>{
@@ -2176,20 +2262,24 @@ document.addEventListener('DOMContentLoaded', function(){
     const maxHft = Math.max(0, ...state.sections.map(s => feetFromStr(s.height)));
     const goPostLen = Math.max(8, (maxHft>0 ? maxHft + 3 : 8));
     if(postSizesSet.size === 0){ postSizesSet.add('2x2'); }
-    postSizesSet.forEach(ps => {
-      if(ps === '2x2'){
-        sub.push(`- 3x 2x2x${goPostLen} posts`);
-      } else if(ps === '3x3'){
-        sub.push(`- 3x 3x3x12 raw steel (for posts)`);
-      } else {
-        sub.push(`- 3x ${ps} posts`);
+      postSizesSet.forEach(ps => {
+        if(ps === '2x2'){
+          sub.push(`- 3x 2x2x${goPostLen} posts`);
+        } else if(ps === '3x3'){
+          sub.push(`- 3x 3x3x12 raw steel (for posts)`);
+        } else {
+          sub.push(`- 3x ${ps} posts`);
+        }
+      });
+      sub.push(`- 3x Maximizer bags of concrete`);
+      sub.push('- 1x gallon of gloss black paint');
+      sub.push('- 1x spray can (gloss black)');
+      if (totalLenPrimePaint > 0) {
+        sub.push('- 1x gallon of red oxide primer');
+        sub.push('- 1x spray can (red oxide primer)');
       }
-    });
-    sub.push(`- 3x Maximizer bags of concrete`);
-    sub.push('- 1x gallon of gloss black paint');
-    sub.push('- 1x spray can (gloss black)');
 
-    const railSizesSet = new Set();
+      const railSizesSet = new Set();
     state.sections.forEach(s => {
       const rCount = s.railsCount || (s.rails||[]).length || 0;
       for(let i=0;i<rCount;i++){
@@ -2222,10 +2312,15 @@ document.addEventListener('DOMContentLoaded', function(){
     if (totals.panelsPrefab > 0)    sub.push('- Prefab panels to install: '+totals.panelsPrefab);
     if (totals.panelsCustom > 0)    sub.push('- Panels to custom-build: '+totals.panelsCustom);
     if (paintLenTotal > 0)          sub.push('- Scrape off loose rust and debris, then hand paint '+paintLenTotal+' ft of fence');
+    if (totalLenPrimePaint > 0)     sub.push('- Prime with red oxide primer and schedule a return visit after cure to apply the finish coat');
 
     if (notesSubEl) { notesSubEl.value = sub.join('\n'); }
 
-    const crewCost = laborCost(crew);
+    const crewDay1 = day1Config.crew;
+    const crewDay2 = multiDay ? day2Config.crew : 0;
+    const crewCostDay1 = laborCost(crewDay1);
+    const crewCostDay2 = multiDay ? laborCost(crewDay2) : 0;
+    const crewCost = crewCostDay1 + crewCostDay2;
     const directCosts = crewCost + costMaterials;
     const revenueRes = computeChargeRevenue(directCosts);
     const revenue = revenueRes && isFinite(revenueRes.revenue) ? revenueRes.revenue : NaN;
@@ -2235,8 +2330,9 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const cost = [];
     cost.push('ESTIMATED COST');
-    const crewLabel = crew === 1 ? 'guy' : 'guys';
-    const laborCrewDetail = crewSplitStr ? `${crew} ${crewLabel} — ${crewSplitStr}` : `${crew} ${crewLabel}`;
+    const day1Detail = crewDay1 > 0 ? `Day 1 — ${formatCrewCount(crewDay1, day1Config.mix)}` : 'Day 1 — TBD';
+    const day2Detail = multiDay ? (crewDay2 > 0 ? `; Day 2 — ${formatCrewCount(crewDay2, day2Config.mix)}` : '; Day 2 — TBD') : '';
+    const laborCrewDetail = multiDay ? `${day1Detail}${day2Detail}` : (crewDay1 > 0 ? formatCrewCount(crewDay1, day1Config.mix) : 'TBD');
     cost.push('- Labor: $'+money(crewCost)+' ('+laborCrewDetail+')');
     cost.push('- Materials: $'+money(costMaterials));
     matBreak.forEach(line=> cost.push(line));
