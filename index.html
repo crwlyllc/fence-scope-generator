@@ -1,5 +1,11 @@
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scope Generator</title>
+  <link rel="icon" type="image/jpeg" sizes="32x32" href="https://cdn.prod.website-files.com/6594928d27a68dfdb6474334/66e8a1e05c9e00dea43e9a1b_Strong-Perimeter-Logo-32.jpg" />
+  <style>
   :root{
     --sp-green:#004B3D;
     --sp-ink:#1d1d1f;
@@ -124,7 +130,9 @@
   @media(max-width:719px){
     .sp-top{ right:12px; bottom:12px; }
   }
-</style>
+  </style>
+</head>
+<body>
 
 <div id="sp-scope">
   <div class="sp-container">
@@ -1074,8 +1082,6 @@ document.addEventListener('DOMContentLoaded', function(){
       const postSize = (row.querySelector('[data-cap-post]')?.value) || SEED.capPostSizes[0];
       return { qty, style, material, postSize };
     });
-  }
-
   }
 
   // ===== Rails helpers/handlers =====
@@ -2841,3 +2847,5 @@ document.addEventListener('DOMContentLoaded', function(){
 })();
 });
 </script>
+</body>
+</html>
