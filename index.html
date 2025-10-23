@@ -209,7 +209,7 @@ document.addEventListener('DOMContentLoaded', function(){
     height:["3ft","4ft","5ft","6ft","8ft"],
     railSize:["1\u201D","1 \u00BC\u201D","1 \u00BD\u201D","1 \u00BE\u201D","1x2\u201D","2\u201D","3\u201D","Flat Bar 1/4\" x 1\""],
     picketSize:["1/2\u201D","5/8\u201D","3/4\u201D","1\u201D"],
-    postSize:["2x2","3x3"],
+    postSize:["1 1/2\" x 1 1/2\"","2x2","3x3"],
     puppy:["None","Puppy Pickets","Puppy Pickets w/ Finials","Puppy Pickets Full Height","Puppy Pickets Full Height w/ Finials"],
     // NEW: finials
     finialStyles:["Quad Star","Banana Split","Boy Scout","Ball"],
@@ -217,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function(){
     // NEW: post caps
     capStyles:["Pyramid","Pressed","Ball"],
     capMaterials:["Cast Iron","Plastic","Metal"],
-    capPostSizes:["2x2","3x3","4x4"],
+    capPostSizes:["1 1/2\" x 1 1/2\"","2x2","3x3","4x4"],
   };
 
   const GATE = {
@@ -2137,7 +2137,7 @@ document.addEventListener('DOMContentLoaded', function(){
       // Normalize style to handle typos like "bal" -> "ball"
       const styleNorm = String(style||'').toLowerCase();
       const isBall = /ball/.test(styleNorm);
-      if(postSize === '2x2'){
+      if(postSize === '1 1/2" x 1 1/2"' || postSize === '2x2'){
         unit = isBall ? 4 : 1;
       } else if(postSize === '3x3'){
         unit = isBall ? 7 : 2;
