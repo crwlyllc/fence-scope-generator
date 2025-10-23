@@ -2215,31 +2215,52 @@ document.addEventListener('DOMContentLoaded', function(){
     const day1Hours = primePaintScheduled ? Math.max(0, manHours - day2Hours) : manHours;
     const helperHoursDay1 = Math.max(0, helperHours - helperHoursReturnTrip);
 
-    const day1Config = computeCrewConfig(day1Hours, welderHours, helperHoursDay1);
-    const day2Config = computeCrewConfig(day2Hours, 0, helperHoursReturnTrip);
-    const multiDay = primePaintScheduled && day2Config.crew > 0;
-    const crewSplitStr = day1Config.mix;
+    const rawDay1Config = computeCrewConfig(day1Hours, welderHours, helperHoursDay1);
+    const rawDay2Config = computeCrewConfig(day2Hours, 0, helperHoursReturnTrip);
+
+    const primePaintCrewSize = primePaintScheduled ? 3 : 0;
+    const describePrimeMix = (count)=>{
+      if(count <= 0) return '';
+      return count === 1 ? '1 helper' : `${count} helpers`;
+    };
+
+    let day1Crew = rawDay1Config.crew;
+    let day1Mix = rawDay1Config.mix;
+    let day2Crew = rawDay2Config.crew;
+    let day2Mix = rawDay2Config.mix;
+
+    if(primePaintScheduled){
+      day2Crew = primePaintCrewSize;
+      day2Mix = describePrimeMix(day2Crew);
+      if(day1Crew < primePaintCrewSize){
+        day1Crew = primePaintCrewSize;
+        day1Mix = describePrimeMix(day1Crew);
+      }
+    }
+
+    const multiDay = primePaintScheduled;
+    const crewSplitStr = day1Mix;
 
     const durationLines = [];
     if(multiDay){
-      durationLines.push(`Day 1: ${formatCrewCount(day1Config.crew, day1Config.mix)} — Prime with red oxide primer.`);
-      durationLines.push(`Day 2: ${formatCrewCount(day2Config.crew, day2Config.mix)} — Return after cure to apply finish coat.`);
-    } else if(day1Config.crew > 0) {
-      durationLines.push(`1 day for ${formatCrewCount(day1Config.crew, day1Config.mix)}`);
+      durationLines.push(`Day 1: ${formatCrewCount(day1Crew, day1Mix)} — Prime with red oxide primer.`);
+      durationLines.push(`Day 2: ${formatCrewCount(day2Crew, day2Mix)} — Return after cure to apply finish coat.`);
+    } else if(day1Crew > 0) {
+      durationLines.push(`1 day for ${formatCrewCount(day1Crew, day1Mix)}`);
     } else {
       durationLines.push('Duration TBD');
     }
 
     lines.push('');
     lines.push('CREW');
-    if(day1Config.crew > 0){
+    if(day1Crew > 0){
       if(multiDay){
-        lines.push(`- Day 1 crew: ${formatCrewCount(day1Config.crew, day1Config.mix)}`);
-        if(day2Config.crew > 0){
-          lines.push(`- Day 2 crew: ${formatCrewCount(day2Config.crew, day2Config.mix)}`);
+        lines.push(`- Day 1 crew: ${formatCrewCount(day1Crew, day1Mix)}`);
+        if(day2Crew > 0){
+          lines.push(`- Day 2 crew: ${formatCrewCount(day2Crew, day2Mix)}`);
         }
       } else {
-        lines.push(`- Day crew: ${formatCrewCount(day1Config.crew, day1Config.mix)}`);
+        lines.push(`- Day crew: ${formatCrewCount(day1Crew, day1Mix)}`);
       }
       if(crewSplitStr && !multiDay) lines.push(`- Mix: ${crewSplitStr}`);
       if(primePaintScheduled) lines.push('- Schedule: Day 1 prime, Day 2 return to apply finish coat');
@@ -2316,8 +2337,8 @@ document.addEventListener('DOMContentLoaded', function(){
 
     if (notesSubEl) { notesSubEl.value = sub.join('\n'); }
 
-    const crewDay1 = day1Config.crew;
-    const crewDay2 = multiDay ? day2Config.crew : 0;
+    const crewDay1 = day1Crew;
+    const crewDay2 = multiDay ? day2Crew : 0;
     const crewCostDay1 = laborCost(crewDay1);
     const crewCostDay2 = multiDay ? laborCost(crewDay2) : 0;
     const crewCost = crewCostDay1 + crewCostDay2;
@@ -2330,9 +2351,9 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const cost = [];
     cost.push('ESTIMATED COST');
-    const day1Detail = crewDay1 > 0 ? `Day 1 — ${formatCrewCount(crewDay1, day1Config.mix)}` : 'Day 1 — TBD';
-    const day2Detail = multiDay ? (crewDay2 > 0 ? `; Day 2 — ${formatCrewCount(crewDay2, day2Config.mix)}` : '; Day 2 — TBD') : '';
-    const laborCrewDetail = multiDay ? `${day1Detail}${day2Detail}` : (crewDay1 > 0 ? formatCrewCount(crewDay1, day1Config.mix) : 'TBD');
+    const day1Detail = crewDay1 > 0 ? `Day 1 — ${formatCrewCount(crewDay1, day1Mix)}` : 'Day 1 — TBD';
+    const day2Detail = multiDay ? (crewDay2 > 0 ? `; Day 2 — ${formatCrewCount(crewDay2, day2Mix)}` : '; Day 2 — TBD') : '';
+    const laborCrewDetail = multiDay ? `${day1Detail}${day2Detail}` : (crewDay1 > 0 ? formatCrewCount(crewDay1, day1Mix) : 'TBD');
     cost.push('- Labor: $'+money(crewCost)+' ('+laborCrewDetail+')');
     cost.push('- Materials: $'+money(costMaterials));
     matBreak.forEach(line=> cost.push(line));
