@@ -1485,6 +1485,8 @@ document.addEventListener('DOMContentLoaded', function(){
     };
     const materials = {};
     let manHours = 0;
+    let welderHours = 0;
+    let helperHours = 0;
 
     state.sections.forEach((s, idx)=>{
       const title  = s.label ? `Section ${idx+1} - ${s.label}` : `Section ${idx+1}`;
@@ -1550,8 +1552,11 @@ document.addEventListener('DOMContentLoaded', function(){
         const isFin = /Finials/i.test(p.style);
         lines.push(`  - ${q} × ${p.widthIn||0}" wide panel — ${p.height}, ${p.style}, rails ${p.railSize}, pickets ${p.picketSize} ${eligible?'(prefab eligible)':'(build on site)'}`);
         // Labor
-        if(eligible){ manHours += q * 0.5; totals.panelsPrefab += q; }
-        else        { manHours += q * 1.5; totals.panelsCustom += q; }
+        const panelHours = eligible ? q * 0.5 : q * 1.5;
+        manHours += panelHours;
+        welderHours += panelHours;
+        if(eligible){ totals.panelsPrefab += q; }
+        else        { totals.panelsCustom += q; }
 
         // Materials / Costing accumulators handled after loop below
         // Store a scratch list on section to pick up later
@@ -1732,16 +1737,28 @@ document.addEventListener('DOMContentLoaded', function(){
     let paintGallons = 0;
     let paintCans = 0;
 
-    manHours += (totals.wiPickets*12 + totals.wiPatches*20 + totals.wiRails*30 + totals.posts2x2*60 + totals.posts3x3*90 + (totals.postsRealign2x2 + totals.postsRealign3x3)*30)/60;
-    manHours += totals.walkRealign * 1 + totals.walkHardware * 1 + totals.walkRebuild * 3;
+    const weldRepairHours = (totals.wiPickets*12 + totals.wiPatches*20 + totals.wiRails*30 + totals.posts2x2*60 + totals.posts3x3*90 + (totals.postsRealign2x2 + totals.postsRealign3x3)*30)/60;
+    manHours += weldRepairHours;
+    welderHours += weldRepairHours;
+    const gateRepairHours = totals.walkRealign * 1 + totals.walkHardware * 1 + totals.walkRebuild * 3;
+    manHours += gateRepairHours;
+    welderHours += gateRepairHours;
     // Dig out: 5 minutes per LF
-    manHours += totals.digOut * (5/60);
+    const digHours = totals.digOut * (5/60);
+    manHours += digHours;
+    helperHours += digHours;
     // Finials: 0.5 minutes each
-    manHours += totals.finials * (0.5/60);
+    const finialHours = totals.finials * (0.5/60);
+    manHours += finialHours;
+    welderHours += finialHours;
     // Caps: 20 seconds each
-    manHours += totals.caps * (20/60);
+    const capHours = totals.caps * (20/60);
+    manHours += capHours;
+    helperHours += capHours;
     // Added gates: 4 hours each
-    manHours += totals.walkGateAdds * 4;
+    const addedGateHours = totals.walkGateAdds * 4;
+    manHours += addedGateHours;
+    welderHours += addedGateHours;
 
     // posts (2x2 by length)
     const posts2x2ByLenCalc = {};
@@ -2106,10 +2123,43 @@ document.addEventListener('DOMContentLoaded', function(){
     }, 0);
     const paintHardscapeLen = state.sections.reduce((acc,s)=> acc + ((s.painting==='Paint Section') ? (parseInt(s.hardscape||0,10)||0) : 0), 0);
     const paintTrimLen = state.sections.reduce((acc,s)=> acc + ((s.painting==='Paint Section') ? (parseInt(s.trim||0,10)||0) : 0), 0);
-    manHours += lengthHours + (paintHardscapeLen/20) + (paintTrimLen/50);
+    const paintingHours = lengthHours + (paintHardscapeLen/20) + (paintTrimLen/50);
+    manHours += paintingHours;
+    helperHours += paintingHours;
+
+    const trackedHours = welderHours + helperHours;
+    function describeCrewSplit(welders, helpers){
+      const parts = [];
+      if(welders > 0){ parts.push(`${welders} ${welders === 1 ? 'welder' : 'welders'}`); }
+      if(helpers > 0){ parts.push(`${helpers} ${helpers === 1 ? 'helper' : 'helpers'}`); }
+      return parts.join(' + ');
+    }
 
     const crew = Math.ceil(manHours / 8);
-    const durationStr = crew > 0 ? `1 day for ${crew} ${crew===1?'guy':'guys'}` : 'TBD';
+    let welderCount = 0;
+    if(crew > 0 && welderHours > 0){
+      const share = trackedHours > 0 ? welderHours / trackedHours : 1;
+      welderCount = Math.max(1, Math.round(crew * share));
+      welderCount = Math.min(welderCount, crew);
+    }
+    let helperCount = crew > 0 ? Math.max(0, crew - welderCount) : 0;
+    if(helperHours > 0 && helperCount === 0 && crew > 1){
+      helperCount = 1;
+      welderCount = Math.max(0, crew - helperCount);
+    }
+    const crewSplitStr = describeCrewSplit(welderCount, helperCount);
+    const durationStr = crew > 0
+      ? `1 day for ${crew} ${crew===1?'guy':'guys'}${crewSplitStr ? ` (${crewSplitStr})` : ''}`
+      : 'TBD';
+
+    lines.push('');
+    lines.push('CREW');
+    if(crew > 0){
+      lines.push(`- Day crew: ${crew} ${crew===1?'guy':'guys'}`);
+      if(crewSplitStr) lines.push(`- Mix: ${crewSplitStr}`);
+    } else {
+      lines.push('- Day crew: TBD');
+    }
 
     const sub = [];
     sub.push('JOB DURATION');
@@ -2185,7 +2235,9 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const cost = [];
     cost.push('ESTIMATED COST');
-    cost.push('- Labor: $'+money(crewCost)+' ('+crew+' '+(crew===1?'guy':'guys')+')');
+    const crewLabel = crew === 1 ? 'guy' : 'guys';
+    const laborCrewDetail = crewSplitStr ? `${crew} ${crewLabel} — ${crewSplitStr}` : `${crew} ${crewLabel}`;
+    cost.push('- Labor: $'+money(crewCost)+' ('+laborCrewDetail+')');
     cost.push('- Materials: $'+money(costMaterials));
     matBreak.forEach(line=> cost.push(line));
     cost.push('- Total: $'+money(crewCost + costMaterials));
