@@ -2294,8 +2294,8 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const cost = [];
     cost.push('ESTIMATED COST');
-    const crewLabel = crew === 1 ? 'guy' : 'guys';
-    const laborCrewDetail = crewSplitStr ? `${crew} ${crewLabel} — ${crewSplitStr}` : `${crew} ${crewLabel}`;
+    const crewWord = crew === 1 ? 'guy' : 'guys';
+    const laborCrewDetail = crewSplitStr ? `${crew} ${crewWord} — ${crewSplitStr}` : `${crew} ${crewWord}`;
     const laborDetailWithDays = crewDays > 1 ? `${laborCrewDetail} for ${crewDays} days` : laborCrewDetail;
     cost.push('- Labor: $'+money(crewCost)+' ('+laborDetailWithDays+')');
     cost.push('- Materials: $'+money(costMaterials));
