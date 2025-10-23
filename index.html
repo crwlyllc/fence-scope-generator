@@ -210,6 +210,7 @@ document.addEventListener('DOMContentLoaded', function(){
     railSize:["1\u201D","1 \u00BC\u201D","1 \u00BD\u201D","1 \u00BE\u201D","1x2\u201D","2\u201D","3\u201D","Flat Bar 1/4\" x 1\""],
     picketSize:["1/2\u201D","5/8\u201D","3/4\u201D","1\u201D"],
     postSize:["1 1/2\" x 1 1/2\"","2x2","3x3","4x4"],
+    postRealignSize:["2x2","3x3"],
     puppy:["None","Puppy Pickets","Puppy Pickets w/ Finials","Puppy Pickets Full Height","Puppy Pickets Full Height w/ Finials"],
     // NEW: finials
     finialStyles:["Quad Star","Banana Split","Boy Scout","Ball"],
@@ -325,29 +326,22 @@ document.addEventListener('DOMContentLoaded', function(){
         <div class="col-12 sp-divider"></div>
 
         <!-- ========== GROUP: Posts & Caps ========== -->
-        <div class="sp-field col-3">
-          <label class="sp-label"># 2x2 Posts to Replace</label>
-          ${numberControl('posts2x2','0')}
+        <div class="sp-field col-12">
+          <label class="sp-label">Post Replacements</label>
+          <div data-post-replacements></div>
+          <div class="sp-row" style="margin-top:6px">
+            <button class="sp-btn ghost" type="button" data-post-replacement-add>+ Add Post Replacement Group</button>
+            <span class="sp-hint">List each post size and quantity to replace.</span>
+          </div>
         </div>
-        <div class="sp-field col-3">
-          <label class="sp-label"># 3x3 Posts to Replace</label>
-          ${numberControl('posts3x3','0')}
-        </div>
-        <div class="sp-field col-3">
-          <label class="sp-label"># 1 1/2" x 1 1/2" Posts to Replace</label>
-          ${numberControl('posts1p5','0')}
-        </div>
-        <div class="sp-field col-3">
-          <label class="sp-label"># 4x4 Posts to Replace</label>
-          ${numberControl('posts4x4','0')}
-        </div>
-        <div class="sp-field col-3">
-          <label class="sp-label"># 2x2 Posts to Realign</label>
-          ${numberControl('postsRealign2x2','0')}
-        </div>
-        <div class="sp-field col-3">
-          <label class="sp-label"># 3x3 Posts to Realign</label>
-          ${numberControl('postsRealign3x3','0')}
+
+        <div class="sp-field col-12">
+          <label class="sp-label">Post Realignments</label>
+          <div data-post-realign></div>
+          <div class="sp-row" style="margin-top:6px">
+            <button class="sp-btn ghost" type="button" data-post-realign-add>+ Add Post Realignment Group</button>
+            <span class="sp-hint">Track leaning posts by size for realignment.</span>
+          </div>
         </div>
 
         <!-- Post Cap replacements (kept as a block) -->
@@ -531,10 +525,8 @@ document.addEventListener('DOMContentLoaded', function(){
         {size:SEED.railSize[0], stacked:false, size2:SEED.railSize[0], patches:0, replacements:0},
       ],
       postSize: '2x2',
-      posts1p5: 0,
-      postsRealign2x2: 0,
-      postsRealign3x3: 0,
-      posts4x4: 0,
+      postReplacements: [],
+      postRealignments: [],
       walkGates: 0,
       walkGatesRealign: 0,
       walkGatesHardware: 0,
@@ -652,12 +644,36 @@ document.addEventListener('DOMContentLoaded', function(){
       });
     }
 
+    const postReplacements = [];
+    const postRepCont = card.querySelector('[data-post-replacements]');
+    if(postRepCont){
+      const rows = Array.from(postRepCont.querySelectorAll('[data-post-replacement-row]'));
+      rows.forEach(row=>{
+        const qty = parseInt((row.querySelector('[data-post-replacement-qty] input')?.value)||'0',10) || 0;
+        const size = (row.querySelector('[data-post-replacement-size]')?.value) || SEED.postSize[0];
+        if(qty>0){ postReplacements.push({ qty, size }); }
+      });
+    }
+
+    const postRealignments = [];
+    const postRealignCont = card.querySelector('[data-post-realign]');
+    if(postRealignCont){
+      const rows = Array.from(postRealignCont.querySelectorAll('[data-post-realign-row]'));
+      rows.forEach(row=>{
+        const qty = parseInt((row.querySelector('[data-post-realign-qty] input')?.value)||'0',10) || 0;
+        const size = (row.querySelector('[data-post-realign-size]')?.value) || SEED.postRealignSize[0];
+        if(qty>0){ postRealignments.push({ qty, size }); }
+      });
+    }
+
     return {
       id,
       label: val('label').trim(),
       style: val('style'),
       height: val('height'),
       postSize: val('postSize'),
+      postReplacements,
+      postRealignments,
 
       railsCount,
       rails,
@@ -675,12 +691,6 @@ document.addEventListener('DOMContentLoaded', function(){
       trim: val('trim'),
       digOut: val('digOut'),
       wiPickets: val('wiPickets'),
-      posts2x2: val('posts2x2'),
-      posts3x3: val('posts3x3'),
-      posts1p5: val('posts1p5'),
-      posts4x4: val('posts4x4'),
-      postsRealign2x2: val('postsRealign2x2'),
-      postsRealign3x3: val('postsRealign3x3'),
       walkGates: val('walkGates'),
       walkGatesRealign: val('walkGatesRealign'),
       walkGatesHardware: val('walkGatesHardware'),
@@ -754,12 +764,6 @@ document.addEventListener('DOMContentLoaded', function(){
     set('trim', data.trim||'');
     set('digOut', data.digOut||'');
     set('wiPickets', data.wiPickets||'');
-    set('posts2x2', data.posts2x2||'');
-    set('posts3x3', data.posts3x3||'');
-    set('posts1p5', data.posts1p5||'');
-    set('posts4x4', data.posts4x4||'');
-    set('postsRealign2x2', data.postsRealign2x2||'');
-    set('postsRealign3x3', data.postsRealign3x3||'');
     set('walkGates', data.walkGates||'');
     set('walkGatesRealign', data.walkGatesRealign||'');
     set('walkGatesHardware', data.walkGatesHardware||'');
@@ -781,6 +785,9 @@ document.addEventListener('DOMContentLoaded', function(){
 
     set('notes', data.notes||'');
 
+    // NEW: render post groups
+    renderPostReplacementControls(card, data);
+    renderPostRealignControls(card, data);
     // NEW: render finial rows
     renderFinialsControls(card, data);
     // NEW: render cap rows
@@ -794,7 +801,183 @@ document.addEventListener('DOMContentLoaded', function(){
       toggleBtn.textContent = isCollapsed ? 'Expand' : 'Collapse';
       toggleBtn.setAttribute('aria-expanded', (!isCollapsed).toString());
     }
+  }
   // === NEW: cap row rendering & persistence ===
+  function renderPostGroups(card, data, cfg){
+    const cont = card.querySelector(cfg.container);
+    if(!cont) return;
+    cont.innerHTML = '';
+    const options = Array.isArray(cfg.options) && cfg.options.length ? cfg.options : SEED.postSize;
+    const arr = Array.isArray(data[cfg.prop]) ? data[cfg.prop] : [];
+
+    arr.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'sp-grid';
+      row.setAttribute(cfg.rowAttr, '');
+      row.innerHTML = `
+        <div class="sp-field col-3">
+          <label class="sp-label">Qty</label>
+          <div class="sp-number" ${cfg.qtyAttr}>
+            <button type="button" class="sp-step" data-dir="-1" aria-label="decrement">–</button>
+            <input type="number" inputmode="numeric" step="1" min="0" value="${item.qty||0}" />
+            <button type="button" class="sp-step" data-dir="1" aria-label="increment">+</button>
+          </div>
+        </div>
+        <div class="sp-field col-4">
+          <label class="sp-label">Post Size</label>
+          <select class="sp-select" ${cfg.sizeAttr}>${createSelect(options)}</select>
+        </div>
+        <div class="sp-field col-2" style="align-self:end">
+          <button class="sp-btn danger" ${cfg.removeAttr} type="button">Remove</button>
+        </div>`;
+      cont.appendChild(row);
+      const sizeSel = row.querySelector(cfg.sizeSel);
+      if(sizeSel){
+        sizeSel.value = item.size || options[0];
+      }
+    });
+
+    const addBtn = card.querySelector(cfg.addBtn);
+    if(addBtn){
+      addBtn.onclick = ()=>{
+        const secId = card.getAttribute('data-id');
+        const s = state.sections.find(x=>x.id===secId);
+        if(!s) return;
+        if(!Array.isArray(s[cfg.prop])) s[cfg.prop] = [];
+        const defaultSize = typeof cfg.defaultSize === 'function'
+          ? cfg.defaultSize(s)
+          : cfg.defaultSize;
+        const nextSize = defaultSize || options[0] || '';
+        s[cfg.prop].push({ qty: 1, size: nextSize });
+        renderPostGroups(card, s, cfg);
+        attachNumberHandlers(card);
+        persist();
+      };
+    }
+
+    cont.addEventListener('click', (e)=>{
+      const btn = e.target.closest(cfg.removeSel);
+      if(!btn) return;
+      const rows = Array.from(cont.querySelectorAll(cfg.rowSel));
+      const row = btn.closest(cfg.rowSel);
+      const idx = rows.indexOf(row);
+      const secId = card.getAttribute('data-id');
+      const s = state.sections.find(x=>x.id===secId);
+      if(!s || !Array.isArray(s[cfg.prop])) return;
+      if(idx >= 0){
+        s[cfg.prop].splice(idx,1);
+        renderPostGroups(card, s, cfg);
+        attachNumberHandlers(card);
+        persist();
+      }
+    });
+
+    cont.addEventListener('change', (e)=>{
+      if(e.target.matches(cfg.sizeSel)){
+        persistPostGroupsFromDOM(card, cfg);
+        persist();
+      }
+    });
+
+    cont.addEventListener('input', (e)=>{
+      if(e.target.closest(cfg.qtySel)){
+        persistPostGroupsFromDOM(card, cfg);
+        persist();
+      }
+    });
+  }
+
+  function persistPostGroupsFromDOM(card, cfg){
+    const secId = card.getAttribute('data-id');
+    const s = state.sections.find(x=>x.id===secId);
+    if(!s) return;
+    const cont = card.querySelector(cfg.container);
+    const rows = cont ? Array.from(cont.querySelectorAll(cfg.rowSel)) : [];
+    const options = Array.isArray(cfg.options) && cfg.options.length ? cfg.options : SEED.postSize;
+    s[cfg.prop] = rows.map(row=>{
+      const qty = parseInt((row.querySelector(`${cfg.qtySel} input`)?.value)||'0',10) || 0;
+      const size = (row.querySelector(cfg.sizeSel)?.value) || options[0] || '';
+      return { qty, size };
+    });
+  }
+
+  function renderPostReplacementControls(card, data){
+    renderPostGroups(card, data, {
+      prop: 'postReplacements',
+      container: '[data-post-replacements]',
+      rowAttr: 'data-post-replacement-row',
+      rowSel: '[data-post-replacement-row]',
+      qtyAttr: 'data-post-replacement-qty',
+      qtySel: '[data-post-replacement-qty]',
+      sizeAttr: 'data-post-replacement-size',
+      sizeSel: '[data-post-replacement-size]',
+      removeAttr: 'data-post-replacement-remove',
+      removeSel: '[data-post-replacement-remove]',
+      addBtn: '[data-post-replacement-add]',
+      options: SEED.postSize,
+      defaultSize: (section)=> section.postSize || SEED.postSize[0]
+    });
+  }
+
+  function renderPostRealignControls(card, data){
+    renderPostGroups(card, data, {
+      prop: 'postRealignments',
+      container: '[data-post-realign]',
+      rowAttr: 'data-post-realign-row',
+      rowSel: '[data-post-realign-row]',
+      qtyAttr: 'data-post-realign-qty',
+      qtySel: '[data-post-realign-qty]',
+      sizeAttr: 'data-post-realign-size',
+      sizeSel: '[data-post-realign-size]',
+      removeAttr: 'data-post-realign-remove',
+      removeSel: '[data-post-realign-remove]',
+      addBtn: '[data-post-realign-add]',
+      options: SEED.postRealignSize,
+      defaultSize: ()=> SEED.postRealignSize[0] || '2x2'
+    });
+  }
+
+  const POST_SIZE_KEY = {
+    '1 1/2" x 1 1/2"': 'posts1p5',
+    '2x2': 'posts2x2',
+    '3x3': 'posts3x3',
+    '4x4': 'posts4x4'
+  };
+
+  function postSizeKey(size){
+    const raw = String(size||'').trim();
+    if(POST_SIZE_KEY[raw]) return POST_SIZE_KEY[raw];
+    const compact = raw
+      .toLowerCase()
+      .replace(/×/g,'x')
+      .replace(/\s+/g,'')
+      .replace(/inch|\"/g,'');
+    if(compact === '11/2x11/2' || compact === '1.5x1.5') return 'posts1p5';
+    if(compact === '2x2') return 'posts2x2';
+    if(compact === '3x3') return 'posts3x3';
+    if(compact === '4x4') return 'posts4x4';
+    return null;
+  }
+
+  function countPostGroups(arr){
+    const counts = { posts1p5:0, posts2x2:0, posts3x3:0, posts4x4:0 };
+    (Array.isArray(arr) ? arr : []).forEach(item=>{
+      const qty = parseInt(item?.qty,10) || 0;
+      if(qty <= 0) return;
+      const key = postSizeKey(item?.size || item?.postSize);
+      if(key && Object.prototype.hasOwnProperty.call(counts, key)){
+        counts[key] += qty;
+      }
+    });
+    return counts;
+  }
+
+  function addPostCounts(target, counts){
+    Object.keys(counts).forEach(key=>{
+      target[key] = (target[key]||0) + (parseInt(counts[key],10) || 0);
+    });
+  }
+
   function renderCapsControls(card, data){
     const cont = card.querySelector('[data-caps]');
     if(!cont) return;
@@ -1544,12 +1727,14 @@ document.addEventListener('DOMContentLoaded', function(){
       lines.push(`  - Pickets to replace: ${i(s.wiPickets)}`);
       lines.push(`  - Rail patches: ${sectionPatchTotal}`);
       lines.push(`  - Full rail replacements: ${sectionReplTotal}`);
-      lines.push(`  - 2x2 posts to replace: ${i(s.posts2x2)}`);
-      lines.push(`  - 3x3 posts to replace: ${i(s.posts3x3)}`);
-      lines.push(`  - 1 1/2" x 1 1/2" posts to replace: ${i(s.posts1p5)}`);
-      lines.push(`  - 4x4 posts to replace: ${i(s.posts4x4)}`);
-      lines.push(`  - 2x2 posts to realign: ${i(s.postsRealign2x2)}`);
-      lines.push(`  - 3x3 posts to realign: ${i(s.postsRealign3x3)}`);
+      const replaceCounts = countPostGroups(s.postReplacements);
+      const realignCounts = countPostGroups(s.postRealignments);
+      lines.push(`  - 2x2 posts to replace: ${replaceCounts.posts2x2}`);
+      lines.push(`  - 3x3 posts to replace: ${replaceCounts.posts3x3}`);
+      lines.push(`  - 1 1/2" x 1 1/2" posts to replace: ${replaceCounts.posts1p5}`);
+      lines.push(`  - 4x4 posts to replace: ${replaceCounts.posts4x4}`);
+      lines.push(`  - 2x2 posts to realign: ${realignCounts.posts2x2}`);
+      lines.push(`  - 3x3 posts to realign: ${realignCounts.posts3x3}`);
 
       // NEW: Finials
       const finArr = Array.isArray(s.finials) ? s.finials : [];
@@ -1631,12 +1816,9 @@ document.addEventListener('DOMContentLoaded', function(){
       totals.wiPickets    += i(s.wiPickets);
       totals.wiPatches    += sectionPatchTotal;
       totals.wiRails      += sectionReplTotal;
-      totals.posts2x2     += i(s.posts2x2);
-      totals.posts3x3     += i(s.posts3x3);
-      totals.posts1p5     += i(s.posts1p5);
-      totals.posts4x4     += i(s.posts4x4);
-      totals.postsRealign2x2 += i(s.postsRealign2x2);
-      totals.postsRealign3x3 += i(s.postsRealign3x3);
+      addPostCounts(totals, replaceCounts);
+      totals.postsRealign2x2 += realignCounts.posts2x2;
+      totals.postsRealign3x3 += realignCounts.posts3x3;
       totals.walkGates   += wg;
       totals.walkRealign += wgr;
       totals.walkHardware+= wgh;
@@ -1817,7 +1999,8 @@ document.addEventListener('DOMContentLoaded', function(){
     state.sections.forEach(s=>{
       const hft = feetFromStr(s.height);
       const postLen = Math.max(8, hft + 3);
-      const count = parseInt(s.posts1p5||0,10) || 0;
+      const repCounts = countPostGroups(s.postReplacements);
+      const count = repCounts.posts1p5 || 0;
       if(count>0){
         const perStick = Math.max(1, Math.floor(12 / Math.max(1, postLen)));
         raw1p5Total += Math.ceil(count / perStick);
@@ -1835,7 +2018,8 @@ document.addEventListener('DOMContentLoaded', function(){
     state.sections.forEach(s=>{
       const hft = feetFromStr(s.height);
       const postLen = Math.max(8, hft + 3);
-      const nReplace = parseInt(s.posts2x2||0,10) || 0;
+      const repCounts = countPostGroups(s.postReplacements);
+      const nReplace = repCounts.posts2x2 || 0;
       if(nReplace>0){ posts2x2ByLenCalc[postLen] = (posts2x2ByLenCalc[postLen]||0) + nReplace; }
       const addG = parseInt(s.walkGatesAdd||0,10) || 0;
       if(addG>0 && (s.walkAddPostSize||'').trim() === '2x2'){
@@ -1849,7 +2033,8 @@ document.addEventListener('DOMContentLoaded', function(){
     // 3x3 raw sticks (12ft) incl. gate adds
     const posts3x3ByLenCalc = {};
     state.sections.forEach(s=>{
-      const count = parseInt(s.posts3x3||0,10) || 0;
+      const repCounts = countPostGroups(s.postReplacements);
+      const count = repCounts.posts3x3 || 0;
       const L = feetFromStr(s.height) + 3;
       if(count>0){
         const perStick = Math.max(1, Math.floor(12 / Math.max(1, L)));
@@ -1870,7 +2055,8 @@ document.addEventListener('DOMContentLoaded', function(){
     // 4x4 raw sticks (12ft) incl. gate adds
     const posts4x4ByLenCalc = {};
     state.sections.forEach(s=>{
-      const count = parseInt(s.posts4x4||0,10) || 0;
+      const repCounts = countPostGroups(s.postReplacements);
+      const count = repCounts.posts4x4 || 0;
       const L = feetFromStr(s.height) + 3;
       if(count>0){
         const perStick = Math.max(1, Math.floor(12 / Math.max(1, L)));
