@@ -14,11 +14,12 @@
     --sp-bg:#f8fafc;
     --sp-card:#ffffff;
     --sp-radius:14px;
+    --sp-stage-bg:#ebebeb;
   }
   #sp-scope{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,"Helvetica Neue",Arial,"Noto Sans","Apple Color Emoji","Segoe UI Emoji";color:var(--sp-ink)}
   #sp-scope *{box-sizing:border-box}
 
-  body{margin:0;background:var(--sp-bg);}
+  body{margin:0;background:var(--sp-stage-bg);}
   .sp-container{max-width:1100px;margin:0 auto;padding:24px 24px 40px}
   .sp-header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between;margin-bottom:18px}
   .sp-title{font-size:22px;font-weight:800;letter-spacing:.2px;display:flex;align-items:center;gap:10px;line-height:1.2}
@@ -137,7 +138,7 @@
 <div id="sp-scope">
   <div class="sp-container">
     <div class="sp-header">
-      <div class="sp-title">Wrought Iron Restoration – Scope Generator</div>
+      <div class="sp-title">Wrought Iron Restoration – Stage Scope Generator</div>
       <div class="sp-actions">
         <button class="sp-btn ghost" id="sp-reset" type="button">Reset</button>
         <button class="sp-btn" id="sp-add" type="button">+ Add Section</button>
@@ -149,6 +150,19 @@
       Tip: Use the big + / – buttons on number fields to bump by 1. Add as many sections as you need (front, left side, pool run, etc.).
     </div>
 
+    <div class="sp-card" id="sp-hcp-card" style="margin-bottom:16px">
+      <div class="sp-card-header">
+        <div class="sp-card-title">Housecall Pro Estimate</div>
+      </div>
+      <div class="sp-grid">
+        <div class="sp-field col-12">
+          <label class="sp-label" for="sp-estimate-number">Estimate Number from Housecall Pro</label>
+          <input class="sp-input" id="sp-estimate-number" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="123456" />
+          <div class="sp-hint">Enter the estimate number to enable sending notes directly to Housecall Pro.</div>
+        </div>
+      </div>
+    </div>
+
     <div id="sp-sections" class="sp-sections"></div>
 
     <div class="sp-output" id="sp-output" style="display:none">
@@ -158,6 +172,7 @@
           <div class="sp-row">
             <span class="sp-chip" id="sp-totals-chip" title="Auto-calculated across sections">Totals included</span>
             <button class="sp-btn" id="sp-copy" type="button">Copy Notes</button>
+            <button class="sp-btn primary" id="sp-push-hcp" type="button">Push Notes to HCP</button>
           </div>
         </div>
         <textarea id="sp-notes" readonly></textarea>
@@ -193,7 +208,7 @@
 <script src="https://cdn.jsdelivr.net/npm/iframe-resizer/js/iframeResizer.contentWindow.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
-  document.title = 'Scope Generator';
+  document.title = 'Stage Scope Generator';
   // Set favicon
   (function setFavicon(){
     var href = 'https://cdn.prod.website-files.com/6594928d27a68dfdb6474334/66e8a1e05c9e00dea43e9a1b_Strong-Perimeter-Logo-32.jpg';
@@ -250,6 +265,8 @@ document.addEventListener('DOMContentLoaded', function(){
   const outputEl   = $('#sp-output');
   const notesEl    = $('#sp-notes');
   const notesSubEl = $('#sp-notes-sub');
+  const estimateNumberInput = document.getElementById('sp-estimate-number');
+  const pushHcpBtn = document.getElementById('sp-push-hcp');
   const serviceCardEl = $('#sp-service-card');
   const serviceListEl = $('#sp-service-lines');
   const serviceCopyAllBtn = $('#sp-copy-service');
@@ -2812,6 +2829,79 @@ document.addEventListener('DOMContentLoaded', function(){
       .catch(()=>flashButton(btn, 'Copy failed', { revertMs: 1600, disable: false }));
   }
 
+  async function pushNotesToHcp(){
+    if(!pushHcpBtn || !estimateNumberInput){ return; }
+
+    const rawNumber = (estimateNumberInput.value || '').trim();
+    if(!rawNumber){
+      alert('Please enter the Housecall Pro estimate number.');
+      estimateNumberInput.focus();
+      return;
+    }
+
+    const estimateNumber = rawNumber.replace(/[^0-9]/g, '');
+    if(!estimateNumber){
+      alert('The estimate number must contain at least one digit.');
+      estimateNumberInput.focus();
+      return;
+    }
+
+    const notes = (notesEl && notesEl.value || '').trim();
+    const notesSub = (notesSubEl && notesSubEl.value || '').trim();
+    const serviceLinesPayload = Array.isArray(lastServiceLines)
+      ? lastServiceLines
+          .map(item=>({
+            title: (item && item.name ? String(item.name).trim() : ''),
+            description: (item && item.desc ? String(item.desc).trim() : ''),
+          }))
+          .filter(item=>item.title || item.description)
+      : [];
+    if(!notes){
+      alert('There are no notes to send yet. Generate notes first.');
+      return;
+    }
+
+    if(typeof fetch !== 'function'){
+      alert('This browser does not support automatic note sending. Please copy the notes manually.');
+      return;
+    }
+
+    const originalText = pushHcpBtn.textContent;
+    pushHcpBtn.disabled = true;
+    pushHcpBtn.textContent = 'Pushing...';
+
+    try{
+      const payload = {
+        estimateNumber,
+        notes,
+        notesSub,
+      };
+
+      if(serviceLinesPayload.length){
+        payload.serviceLines = serviceLinesPayload;
+      }
+
+      const response = await fetch('https://n8n.strongclicks.io/webhook/add-notes-to-hcp-estimate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if(!response.ok){
+        const text = await response.text();
+        throw new Error(text || `Request failed with status ${response.status}`);
+      }
+
+      alert('Notes sent to Housecall Pro.');
+    }catch(err){
+      console.error('Failed to push notes to HCP', err);
+      alert('Failed to push notes to Housecall Pro. Please try again.');
+    }finally{
+      pushHcpBtn.disabled = false;
+      pushHcpBtn.textContent = originalText;
+    }
+  }
+
   const KEY = 'sp_scope_v1';
   function persist(){}
 
@@ -2832,6 +2922,9 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('sp-complete').addEventListener('click', generateNotes);
   document.getElementById('sp-copy').addEventListener('click', copyNotes);
   document.getElementById('sp-copy-sub').addEventListener('click', copySubNotes);
+  if(pushHcpBtn){
+    pushHcpBtn.addEventListener('click', pushNotesToHcp);
+  }
   if(serviceCopyAllBtn){ serviceCopyAllBtn.addEventListener('click', copyAllServiceLines); }
   if(serviceListEl){ serviceListEl.addEventListener('click', handleServiceListClick); }
   document.getElementById('sp-reset').addEventListener('click', resetAll);
