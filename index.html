@@ -2172,7 +2172,6 @@ document.addEventListener('DOMContentLoaded', function(){
     manHours += paintingHours + primePaintReturnHours;
     helperHours += paintingHours + primePaintReturnHours;
 
-    const trackedHours = welderHours + helperHours;
     function describeCrewSplit(welders, helpers){
       const parts = [];
       if(welders > 0){ parts.push(`${welders} ${welders === 1 ? 'welder' : 'welders'}`); }
@@ -2181,36 +2180,56 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 
     const primePaintScheduled = totalLenPrimePaint > 0;
-    const crewDays = primePaintScheduled ? 2 : 1;
-    const crew = Math.ceil(manHours / (8 * crewDays));
-    let welderCount = 0;
-    if(crew > 0 && welderHours > 0){
-      const share = trackedHours > 0 ? welderHours / trackedHours : 1;
-      welderCount = Math.max(1, Math.round(crew * share));
-      welderCount = Math.min(welderCount, crew);
+    const day2Hours = primePaintReturnHours;
+    const day1Hours = Math.max(0, manHours - day2Hours);
+
+    const day1Crew = day1Hours > 0 ? Math.max(1, Math.ceil(day1Hours / 8)) : 0;
+    const day2Crew = primePaintScheduled && day2Hours > 0 ? Math.max(1, Math.ceil(day2Hours / 8)) : 0;
+
+    const helperHoursDay2 = day2Hours;
+    const helperHoursDay1 = Math.max(0, helperHours - helperHoursDay2);
+
+    let welderCountDay1 = 0;
+    if(day1Crew > 0 && welderHours > 0){
+      const trackedDay1Hours = welderHours + helperHoursDay1;
+      const share = trackedDay1Hours > 0 ? welderHours / trackedDay1Hours : 1;
+      welderCountDay1 = Math.max(1, Math.round(day1Crew * share));
+      welderCountDay1 = Math.min(welderCountDay1, day1Crew);
     }
-    let helperCount = crew > 0 ? Math.max(0, crew - welderCount) : 0;
-    if(helperHours > 0 && helperCount === 0 && crew > 1){
-      helperCount = 1;
-      welderCount = Math.max(0, crew - helperCount);
+    let helperCountDay1 = day1Crew > 0 ? Math.max(0, day1Crew - welderCountDay1) : 0;
+    if(helperHoursDay1 > 0 && helperCountDay1 === 0 && day1Crew > 1){
+      helperCountDay1 = 1;
+      welderCountDay1 = Math.max(0, day1Crew - helperCountDay1);
     }
-    const crewSplitStr = describeCrewSplit(welderCount, helperCount);
-    const crewLabel = crew > 0 ? `${crew} ${crew===1?'guy':'guys'}` : '';
-    const crewLabelWithMix = crewLabel + (crewSplitStr ? ` (${crewSplitStr})` : '');
-    const durationStr = crew > 0
-      ? primePaintScheduled
-        ? `2 days of work: ${crewLabelWithMix} on day 1 (prime), ${crewLabelWithMix} on day 2 (return for finish coat)`
-        : `1 day of work: ${crewLabelWithMix}`
-      : 'TBD';
+
+    const day1Split = day1Crew > 0 ? describeCrewSplit(welderCountDay1, helperCountDay1) : '';
+    const day2Split = day2Crew > 0 ? describeCrewSplit(0, day2Crew) : '';
+    const crewLabelWithMix = (count, split) => {
+      if(count <= 0) return '';
+      const word = count === 1 ? 'guy' : 'guys';
+      return split ? `${count} ${word} (${split})` : `${count} ${word}`;
+    };
+    const day1CrewLabel = crewLabelWithMix(day1Crew, day1Split);
+    const day2CrewLabel = crewLabelWithMix(day2Crew, day2Split);
+
+    let durationStr = 'TBD';
+    if(day1Crew > 0 && day2Crew > 0){
+      durationStr = `2 days of work: ${day1CrewLabel} on day 1 (prime/repairs), ${day2CrewLabel} on day 2 (return for finish coat)`;
+    } else if(day1Crew > 0){
+      durationStr = `1 day of work: ${day1CrewLabel}`;
+    } else if(day2Crew > 0){
+      durationStr = `1 day of work: ${day2CrewLabel}`;
+    }
 
     lines.push('');
     lines.push('CREW');
-    if(crew > 0){
-      if(primePaintScheduled){
-        lines.push(`- 2 days of work: ${crewLabelWithMix} on day 1 (prime), ${crewLabelWithMix} on day 2 (return for finish coat)`);
-      } else {
-        lines.push(`- 1 day of work: ${crewLabelWithMix}`);
-      }
+    if(day1Crew > 0 && day2Crew > 0){
+      lines.push(`- Day 1 (prime/repairs): ${day1CrewLabel}`);
+      lines.push(`- Day 2 (return for finish coat): ${day2CrewLabel}`);
+    } else if(day1Crew > 0){
+      lines.push(`- 1 day of work: ${day1CrewLabel}`);
+    } else if(day2Crew > 0){
+      lines.push(`- 1 day of work: ${day2CrewLabel}`);
     } else {
       lines.push('- Crew: TBD');
     }
@@ -2284,7 +2303,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
     if (notesSubEl) { notesSubEl.value = sub.join('\n'); }
 
-    const crewCost = laborCost(crew) * crewDays;
+    const crewCost = (day1Crew > 0 ? laborCost(day1Crew) : 0) + (day2Crew > 0 ? laborCost(day2Crew) : 0);
     const directCosts = crewCost + costMaterials;
     const revenueRes = computeChargeRevenue(directCosts);
     const revenue = revenueRes && isFinite(revenueRes.revenue) ? revenueRes.revenue : NaN;
@@ -2294,9 +2313,18 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const cost = [];
     cost.push('ESTIMATED COST');
-    const crewWord = crew === 1 ? 'guy' : 'guys';
-    const laborCrewDetail = crewSplitStr ? `${crew} ${crewWord} — ${crewSplitStr}` : `${crew} ${crewWord}`;
-    const laborDetailWithDays = crewDays > 1 ? `${laborCrewDetail} for ${crewDays} days` : laborCrewDetail;
+    const crewScheduleDetail = [];
+    if(day1Crew > 0){
+      const suffix = primePaintScheduled ? ' (prime/repairs)' : '';
+      const base = day1Split ? `${day1Crew} ${day1Crew === 1 ? 'guy' : 'guys'} — ${day1Split}` : day1CrewLabel;
+      crewScheduleDetail.push(`Day 1: ${base}${suffix}`);
+    }
+    if(day2Crew > 0){
+      const suffix = primePaintScheduled ? ' (finish coat)' : '';
+      const base = day2Split ? `${day2Crew} ${day2Crew === 1 ? 'guy' : 'guys'} — ${day2Split}` : day2CrewLabel;
+      crewScheduleDetail.push(`Day 2: ${base}${suffix}`);
+    }
+    const laborDetailWithDays = crewScheduleDetail.length ? crewScheduleDetail.join('; ') : 'TBD';
     cost.push('- Labor: $'+money(crewCost)+' ('+laborDetailWithDays+')');
     cost.push('- Materials: $'+money(costMaterials));
     matBreak.forEach(line=> cost.push(line));
