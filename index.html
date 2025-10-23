@@ -2153,6 +2153,7 @@ document.addEventListener('DOMContentLoaded', function(){
     });
 
     // Labor + totals
+    let primePaintReturnHours = 0;
     const paintingHours = state.sections.reduce((acc, s)=>{
       if (s.painting !== 'Paint Section' && s.painting !== 'Prime and Paint') return acc;
       const len = parseInt(s.length||0,10) || 0;
@@ -2162,11 +2163,14 @@ document.addEventListener('DOMContentLoaded', function(){
       const baseHours = (len/8) / Math.max(0.5, denom);
       const hardscapeHours = (parseInt(s.hardscape||0,10)||0) / 20;
       const trimHours = (parseInt(s.trim||0,10)||0) / 50;
-      const multiplier = s.painting === 'Prime and Paint' ? 2 : 1;
-      return acc + multiplier * (baseHours + hardscapeHours + trimHours);
+      const totalSectionHours = baseHours + hardscapeHours + trimHours;
+      if (s.painting === 'Prime and Paint'){
+        primePaintReturnHours += totalSectionHours;
+      }
+      return acc + totalSectionHours;
     }, 0);
-    manHours += paintingHours;
-    helperHours += paintingHours;
+    manHours += paintingHours + primePaintReturnHours;
+    helperHours += paintingHours + primePaintReturnHours;
 
     const trackedHours = welderHours + helperHours;
     function describeCrewSplit(welders, helpers){
@@ -2176,7 +2180,9 @@ document.addEventListener('DOMContentLoaded', function(){
       return parts.join(' + ');
     }
 
-    const crew = Math.ceil(manHours / 8);
+    const primePaintScheduled = totalLenPrimePaint > 0;
+    const crewDays = primePaintScheduled ? 2 : 1;
+    const crew = Math.ceil(manHours / (8 * crewDays));
     let welderCount = 0;
     if(crew > 0 && welderHours > 0){
       const share = trackedHours > 0 ? welderHours / trackedHours : 1;
@@ -2189,7 +2195,6 @@ document.addEventListener('DOMContentLoaded', function(){
       welderCount = Math.max(0, crew - helperCount);
     }
     const crewSplitStr = describeCrewSplit(welderCount, helperCount);
-    const primePaintScheduled = totalLenPrimePaint > 0;
     const durationStr = crew > 0
       ? primePaintScheduled
         ? `2 days for ${crew} ${crew===1?'guy':'guys'}${crewSplitStr ? ` (${crewSplitStr})` : ''}: prime on day one, return after cure for the finish coat`
@@ -2275,7 +2280,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
     if (notesSubEl) { notesSubEl.value = sub.join('\n'); }
 
-    const crewCost = laborCost(crew);
+    const crewCost = laborCost(crew) * crewDays;
     const directCosts = crewCost + costMaterials;
     const revenueRes = computeChargeRevenue(directCosts);
     const revenue = revenueRes && isFinite(revenueRes.revenue) ? revenueRes.revenue : NaN;
@@ -2287,7 +2292,8 @@ document.addEventListener('DOMContentLoaded', function(){
     cost.push('ESTIMATED COST');
     const crewLabel = crew === 1 ? 'guy' : 'guys';
     const laborCrewDetail = crewSplitStr ? `${crew} ${crewLabel} — ${crewSplitStr}` : `${crew} ${crewLabel}`;
-    cost.push('- Labor: $'+money(crewCost)+' ('+laborCrewDetail+')');
+    const laborDetailWithDays = crewDays > 1 ? `${laborCrewDetail} for ${crewDays} days` : laborCrewDetail;
+    cost.push('- Labor: $'+money(crewCost)+' ('+laborDetailWithDays+')');
     cost.push('- Materials: $'+money(costMaterials));
     matBreak.forEach(line=> cost.push(line));
     cost.push('- Total: $'+money(crewCost + costMaterials));
