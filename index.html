@@ -2195,20 +2195,24 @@ document.addEventListener('DOMContentLoaded', function(){
       welderCount = Math.max(0, crew - helperCount);
     }
     const crewSplitStr = describeCrewSplit(welderCount, helperCount);
+    const crewLabel = crew > 0 ? `${crew} ${crew===1?'guy':'guys'}` : '';
+    const crewLabelWithMix = crewLabel + (crewSplitStr ? ` (${crewSplitStr})` : '');
     const durationStr = crew > 0
       ? primePaintScheduled
-        ? `2 days for ${crew} ${crew===1?'guy':'guys'}${crewSplitStr ? ` (${crewSplitStr})` : ''}: prime on day one, return after cure for the finish coat`
-        : `1 day for ${crew} ${crew===1?'guy':'guys'}${crewSplitStr ? ` (${crewSplitStr})` : ''}`
+        ? `2 days of work: ${crewLabelWithMix} on day 1 (prime), ${crewLabelWithMix} on day 2 (return for finish coat)`
+        : `1 day of work: ${crewLabelWithMix}`
       : 'TBD';
 
     lines.push('');
     lines.push('CREW');
     if(crew > 0){
-      lines.push(`- Day crew: ${crew} ${crew===1?'guy':'guys'}`);
-      if(crewSplitStr) lines.push(`- Mix: ${crewSplitStr}`);
-      if(primePaintScheduled) lines.push('- Schedule: Day 1 prime, Day 2 return to apply finish coat');
+      if(primePaintScheduled){
+        lines.push(`- 2 days of work: ${crewLabelWithMix} on day 1 (prime), ${crewLabelWithMix} on day 2 (return for finish coat)`);
+      } else {
+        lines.push(`- 1 day of work: ${crewLabelWithMix}`);
+      }
     } else {
-      lines.push('- Day crew: TBD');
+      lines.push('- Crew: TBD');
     }
 
     const sub = [];
