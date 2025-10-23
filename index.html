@@ -2189,8 +2189,11 @@ document.addEventListener('DOMContentLoaded', function(){
       welderCount = Math.max(0, crew - helperCount);
     }
     const crewSplitStr = describeCrewSplit(welderCount, helperCount);
+    const primePaintScheduled = totalLenPrimePaint > 0;
     const durationStr = crew > 0
-      ? `1 day for ${crew} ${crew===1?'guy':'guys'}${crewSplitStr ? ` (${crewSplitStr})` : ''}`
+      ? primePaintScheduled
+        ? `2 days for ${crew} ${crew===1?'guy':'guys'}${crewSplitStr ? ` (${crewSplitStr})` : ''}: prime on day one, return after cure for the finish coat`
+        : `1 day for ${crew} ${crew===1?'guy':'guys'}${crewSplitStr ? ` (${crewSplitStr})` : ''}`
       : 'TBD';
 
     lines.push('');
@@ -2198,6 +2201,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if(crew > 0){
       lines.push(`- Day crew: ${crew} ${crew===1?'guy':'guys'}`);
       if(crewSplitStr) lines.push(`- Mix: ${crewSplitStr}`);
+      if(primePaintScheduled) lines.push('- Schedule: Day 1 prime, Day 2 return to apply finish coat');
     } else {
       lines.push('- Day crew: TBD');
     }
