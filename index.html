@@ -209,7 +209,7 @@ document.addEventListener('DOMContentLoaded', function(){
     height:["3ft","4ft","5ft","6ft","8ft"],
     railSize:["1\u201D","1 \u00BC\u201D","1 \u00BD\u201D","1 \u00BE\u201D","1x2\u201D","2\u201D","3\u201D","Flat Bar 1/4\" x 1\""],
     picketSize:["1/2\u201D","5/8\u201D","3/4\u201D","1\u201D"],
-    postSize:["1 1/2\" x 1 1/2\"","2x2","3x3"],
+    postSize:["1 1/2\" x 1 1/2\"","2x2","3x3","4x4"],
     puppy:["None","Puppy Pickets","Puppy Pickets w/ Finials","Puppy Pickets Full Height","Puppy Pickets Full Height w/ Finials"],
     // NEW: finials
     finialStyles:["Quad Star","Banana Split","Boy Scout","Ball"],
@@ -332,6 +332,14 @@ document.addEventListener('DOMContentLoaded', function(){
         <div class="sp-field col-3">
           <label class="sp-label"># 3x3 Posts to Replace</label>
           ${numberControl('posts3x3','0')}
+        </div>
+        <div class="sp-field col-3">
+          <label class="sp-label"># 1 1/2" x 1 1/2" Posts to Replace</label>
+          ${numberControl('posts1p5','0')}
+        </div>
+        <div class="sp-field col-3">
+          <label class="sp-label"># 4x4 Posts to Replace</label>
+          ${numberControl('posts4x4','0')}
         </div>
         <div class="sp-field col-3">
           <label class="sp-label"># 2x2 Posts to Realign</label>
@@ -523,8 +531,10 @@ document.addEventListener('DOMContentLoaded', function(){
         {size:SEED.railSize[0], stacked:false, size2:SEED.railSize[0], patches:0, replacements:0},
       ],
       postSize: '2x2',
+      posts1p5: 0,
       postsRealign2x2: 0,
       postsRealign3x3: 0,
+      posts4x4: 0,
       walkGates: 0,
       walkGatesRealign: 0,
       walkGatesHardware: 0,
@@ -667,6 +677,8 @@ document.addEventListener('DOMContentLoaded', function(){
       wiPickets: val('wiPickets'),
       posts2x2: val('posts2x2'),
       posts3x3: val('posts3x3'),
+      posts1p5: val('posts1p5'),
+      posts4x4: val('posts4x4'),
       postsRealign2x2: val('postsRealign2x2'),
       postsRealign3x3: val('postsRealign3x3'),
       walkGates: val('walkGates'),
@@ -744,6 +756,8 @@ document.addEventListener('DOMContentLoaded', function(){
     set('wiPickets', data.wiPickets||'');
     set('posts2x2', data.posts2x2||'');
     set('posts3x3', data.posts3x3||'');
+    set('posts1p5', data.posts1p5||'');
+    set('posts4x4', data.posts4x4||'');
     set('postsRealign2x2', data.postsRealign2x2||'');
     set('postsRealign3x3', data.postsRealign3x3||'');
     set('walkGates', data.walkGates||'');
@@ -1347,6 +1361,7 @@ document.addEventListener('DOMContentLoaded', function(){
     '1 3/4\"': 2.57,
     '2x2\"': 2.57,
     '3x3\"': 6.00,
+    '4x4': 11.6441666667,
     '2\"': 2.57,
     '3\"': 6.00,
     'Flat Bar 1/4\" x 1\"': 0.58
@@ -1481,7 +1496,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const totals = {
       length:0, hardscape:0, trim:0, digOut:0, finials:0, caps:0,
       wiPickets:0, wiPatches:0, wiRails:0,
-      posts2x2:0, posts3x3:0, postsRealign2x2:0, postsRealign3x3:0,
+      posts2x2:0, posts3x3:0, posts1p5:0, posts4x4:0, postsRealign2x2:0, postsRealign3x3:0,
       walkGates:0, walkRealign:0, walkHardware:0, walkRebuild:0,
       walkGateAdds:0,
       panelsPrefab:0, panelsCustom:0
@@ -1531,6 +1546,8 @@ document.addEventListener('DOMContentLoaded', function(){
       lines.push(`  - Full rail replacements: ${sectionReplTotal}`);
       lines.push(`  - 2x2 posts to replace: ${i(s.posts2x2)}`);
       lines.push(`  - 3x3 posts to replace: ${i(s.posts3x3)}`);
+      lines.push(`  - 1 1/2" x 1 1/2" posts to replace: ${i(s.posts1p5)}`);
+      lines.push(`  - 4x4 posts to replace: ${i(s.posts4x4)}`);
       lines.push(`  - 2x2 posts to realign: ${i(s.postsRealign2x2)}`);
       lines.push(`  - 3x3 posts to realign: ${i(s.postsRealign3x3)}`);
 
@@ -1616,6 +1633,8 @@ document.addEventListener('DOMContentLoaded', function(){
       totals.wiRails      += sectionReplTotal;
       totals.posts2x2     += i(s.posts2x2);
       totals.posts3x3     += i(s.posts3x3);
+      totals.posts1p5     += i(s.posts1p5);
+      totals.posts4x4     += i(s.posts4x4);
       totals.postsRealign2x2 += i(s.postsRealign2x2);
       totals.postsRealign3x3 += i(s.postsRealign3x3);
       totals.walkGates   += wg;
@@ -1641,6 +1660,8 @@ document.addEventListener('DOMContentLoaded', function(){
       if (t.wiRails)       lines.push(`- Full rail replacements: ${t.wiRails}`);
       if (t.posts2x2)      lines.push(`- 2x2 posts: ${t.posts2x2}`);
       if (t.posts3x3)      lines.push(`- 3x3 posts: ${t.posts3x3}`);
+      if (t.posts1p5)      lines.push(`- 1 1/2" x 1 1/2" posts: ${t.posts1p5}`);
+      if (t.posts4x4)      lines.push(`- 4x4 posts: ${t.posts4x4}`);
       if (t.postsRealign2x2) lines.push(`- 2x2 posts to realign: ${t.postsRealign2x2}`);
       if (t.postsRealign3x3) lines.push(`- 3x3 posts to realign: ${t.postsRealign3x3}`);
       if (t.walkGates)     lines.push(`- Walk gates: ${t.walkGates}`);
@@ -1709,10 +1730,12 @@ document.addEventListener('DOMContentLoaded', function(){
     if (totals.wiRails > 0){
       addServiceLine('Full Rail Replacement', `Fabricate and install ${describeCount(totals.wiRails, 'new rail', 'new rails')} to match the original profile.`);
     }
-    if (totals.posts2x2 > 0 || totals.posts3x3 > 0){
+    if (totals.posts2x2 > 0 || totals.posts3x3 > 0 || totals.posts1p5 > 0 || totals.posts4x4 > 0){
       const parts = [];
       if(totals.posts2x2 > 0) parts.push(describeCount(totals.posts2x2, '2x2 post', '2x2 posts'));
       if(totals.posts3x3 > 0) parts.push(describeCount(totals.posts3x3, '3x3 post', '3x3 posts'));
+      if(totals.posts1p5 > 0) parts.push(describeCount(totals.posts1p5, '1 1/2" x 1 1/2" post', '1 1/2" x 1 1/2" posts'));
+      if(totals.posts4x4 > 0) parts.push(describeCount(totals.posts4x4, '4x4 post', '4x4 posts'));
       const partText = joinParts(parts);
       if(partText) addServiceLine('Replace Fence Posts', `Set new ${partText} in concrete and tie into existing panels.`);
     }
@@ -1757,7 +1780,16 @@ document.addEventListener('DOMContentLoaded', function(){
     let primerGallons = 0;
     let primerCans = 0;
 
-    const weldRepairHours = (totals.wiPickets*12 + totals.wiPatches*20 + totals.wiRails*30 + totals.posts2x2*60 + totals.posts3x3*90 + (totals.postsRealign2x2 + totals.postsRealign3x3)*30)/60;
+    const weldRepairHours = (
+      totals.wiPickets*12 +
+      totals.wiPatches*20 +
+      totals.wiRails*30 +
+      totals.posts1p5*60 +
+      totals.posts2x2*60 +
+      totals.posts3x3*90 +
+      totals.posts4x4*120 +
+      (totals.postsRealign2x2 + totals.postsRealign3x3)*30
+    )/60;
     manHours += weldRepairHours;
     welderHours += weldRepairHours;
     const gateRepairHours = totals.walkRealign * 1 + totals.walkHardware * 1 + totals.walkRebuild * 3;
@@ -1779,6 +1811,24 @@ document.addEventListener('DOMContentLoaded', function(){
     const addedGateHours = totals.walkGateAdds * 4;
     manHours += addedGateHours;
     welderHours += addedGateHours;
+
+    // posts (1.5" x 1.5" raw sticks)
+    let raw1p5Total = 0;
+    state.sections.forEach(s=>{
+      const hft = feetFromStr(s.height);
+      const postLen = Math.max(8, hft + 3);
+      const count = parseInt(s.posts1p5||0,10) || 0;
+      if(count>0){
+        const perStick = Math.max(1, Math.floor(12 / Math.max(1, postLen)));
+        raw1p5Total += Math.ceil(count / perStick);
+      }
+      const addG = parseInt(s.walkGatesAdd||0,10) || 0;
+      if(addG>0 && (s.walkAddPostSize||'').trim() === '1 1/2" x 1 1/2"'){
+        const perStickAdd = Math.max(1, Math.floor(12 / Math.max(1, postLen)));
+        raw1p5Total += Math.ceil(addG / perStickAdd);
+      }
+    });
+    if(raw1p5Total>0){ addMat(materials, '1.5x1.5x12 raw steel', raw1p5Total); }
 
     // posts (2x2 by length)
     const posts2x2ByLenCalc = {};
@@ -1817,8 +1867,29 @@ document.addEventListener('DOMContentLoaded', function(){
     Object.values(posts3x3ByLenCalc).forEach(v=>{ raw3x3Total += v; });
     if(raw3x3Total>0){ addMat(materials, '3x3x12 raw steel', raw3x3Total); }
 
+    // 4x4 raw sticks (12ft) incl. gate adds
+    const posts4x4ByLenCalc = {};
+    state.sections.forEach(s=>{
+      const count = parseInt(s.posts4x4||0,10) || 0;
+      const L = feetFromStr(s.height) + 3;
+      if(count>0){
+        const perStick = Math.max(1, Math.floor(12 / Math.max(1, L)));
+        const sticks = Math.ceil(count / perStick);
+        posts4x4ByLenCalc[L] = (posts4x4ByLenCalc[L]||0) + sticks;
+      }
+      const addG = parseInt(s.walkGatesAdd||0,10) || 0;
+      if(addG>0 && (s.walkAddPostSize||'').trim() === '4x4'){
+        const perStickAdd = Math.max(1, Math.floor(12 / Math.max(1, L)));
+        const sticksAdd = Math.ceil(addG / perStickAdd);
+        posts4x4ByLenCalc[L] = (posts4x4ByLenCalc[L]||0) + sticksAdd;
+      }
+    });
+    let raw4x4Total = 0;
+    Object.values(posts4x4ByLenCalc).forEach(v=>{ raw4x4Total += v; });
+    if(raw4x4Total>0){ addMat(materials, '4x4x12 raw steel', raw4x4Total); }
+
     // Concrete
-    const concreteBagsCalc = totals.posts2x2 + totals.posts3x3 + Math.ceil((totals.postsRealign2x2 + totals.postsRealign3x3) * 0.5) + totals.walkRealign + totals.walkGateAdds;
+    const concreteBagsCalc = totals.posts2x2 + totals.posts3x3 + totals.posts1p5 + totals.posts4x4 + Math.ceil((totals.postsRealign2x2 + totals.postsRealign3x3) * 0.5) + totals.walkRealign + totals.walkGateAdds;
 
     // Gate bits + gate materials
     const latchCounts = {};
@@ -2079,6 +2150,19 @@ document.addEventListener('DOMContentLoaded', function(){
       matBreak.push('  - 2x2x'+len+' posts: '+qty+' x $'+money(unit)+' = $'+money(c));
     });
 
+    const raw1p5Count = Object.keys(materials).reduce((acc,k)=>{
+      const m = k.match(/^1\.5x1\.5x12 raw steel/);
+      return acc + (m ? materials[k] : 0);
+    },0);
+    if(raw1p5Count>0){
+      const perFt1p5 = PRICE_FT['1 1/2\"'] || 0;
+      const unit1p5 = 12 * perFt1p5;
+      if(perFt1p5 === 0) unpriced = true;
+      const c = raw1p5Count * unit1p5;
+      costMaterials += c;
+      matBreak.push('  - 1.5x1.5 raw steel sticks: '+raw1p5Count+' x 12ft x $'+money(perFt1p5)+'/ft = $'+money(c));
+    }
+
     const raw3x3Count = Object.keys(materials).reduce((acc,k)=>{
       const m = k.match(/^3x3x12 raw steel/);
       return acc + (m ? materials[k] : 0);
@@ -2088,6 +2172,17 @@ document.addEventListener('DOMContentLoaded', function(){
       const c = raw3x3Count * unit3x3;
       costMaterials += c;
       matBreak.push('  - 3x3 raw steel sticks: '+raw3x3Count+' x 12ft x $'+money(PRICE_FT['3x3\"']||0)+'/ft = $'+money(c));
+    }
+
+    const raw4x4Count = Object.keys(materials).reduce((acc,k)=>{
+      const m = k.match(/^4x4x12 raw steel/);
+      return acc + (m ? materials[k] : 0);
+    },0);
+    if(raw4x4Count>0){
+      const unit4x4 = 139.73;
+      const c = raw4x4Count * unit4x4;
+      costMaterials += c;
+      matBreak.push('  - 4x4 raw steel sticks: '+raw4x4Count+' x $'+money(unit4x4)+' = $'+money(c));
     }
 
     const picketLine = /^12ft picket sticks \\((.+?)\\)/;
@@ -2249,22 +2344,26 @@ document.addEventListener('DOMContentLoaded', function(){
     const maxHft = Math.max(0, ...state.sections.map(s => feetFromStr(s.height)));
     const goPostLen = Math.max(8, (maxHft>0 ? maxHft + 3 : 8));
     if(postSizesSet.size === 0){ postSizesSet.add('2x2'); }
-      postSizesSet.forEach(ps => {
-        if(ps === '2x2'){
-          sub.push(`- 3x 2x2x${goPostLen} posts`);
-        } else if(ps === '3x3'){
-          sub.push(`- 3x 3x3x12 raw steel (for posts)`);
-        } else {
-          sub.push(`- 3x ${ps} posts`);
-        }
-      });
-      sub.push(`- 3x Maximizer bags of concrete`);
-      sub.push('- 1x gallon of gloss black paint');
-      sub.push('- 1x spray can (gloss black)');
-      if (totalLenPrimePaint > 0) {
-        sub.push('- 1x gallon of red oxide primer');
-        sub.push('- 1x spray can (red oxide primer)');
+    postSizesSet.forEach(ps => {
+      if(ps === '2x2'){
+        sub.push(`- 3x 2x2x${goPostLen} posts`);
+      } else if(ps === '3x3'){
+        sub.push(`- 3x 3x3x12 raw steel (for posts)`);
+      } else if(ps === '1 1/2" x 1 1/2"'){
+        sub.push(`- 3x 1.5x1.5x12 raw steel (for posts)`);
+      } else if(ps === '4x4'){
+        sub.push(`- 3x 4x4x12 raw steel (for posts)`);
+      } else {
+        sub.push(`- 3x ${ps} posts`);
       }
+    });
+    sub.push(`- 3x Maximizer bags of concrete`);
+    sub.push('- 1x gallon of gloss black paint');
+    sub.push('- 1x spray can (gloss black)');
+    if (totalLenPrimePaint > 0) {
+      sub.push('- 1x gallon of red oxide primer');
+      sub.push('- 1x spray can (red oxide primer)');
+    }
 
       const railSizesSet = new Set();
     state.sections.forEach(s => {
@@ -2286,6 +2385,8 @@ document.addEventListener('DOMContentLoaded', function(){
     if (totals.wiRails > 0)         sub.push('- Full rail replacements: '+totals.wiRails);
     if (totals.posts2x2 > 0)        sub.push('- 2x2 posts to replace: '+totals.posts2x2);
     if (totals.posts3x3 > 0)        sub.push('- 3x3 posts to replace: '+totals.posts3x3);
+    if (totals.posts1p5 > 0)        sub.push('- 1 1/2" x 1 1/2" posts to replace: '+totals.posts1p5);
+    if (totals.posts4x4 > 0)        sub.push('- 4x4 posts to replace: '+totals.posts4x4);
     if (totals.postsRealign2x2 > 0) sub.push('- 2x2 posts to realign: '+totals.postsRealign2x2);
     if (totals.postsRealign3x3 > 0) sub.push('- 3x3 posts to realign: '+totals.postsRealign3x3);
     if (totals.walkGates > 0)       sub.push('- Walk gates: '+totals.walkGates);
