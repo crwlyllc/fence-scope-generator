@@ -278,8 +278,27 @@ document.addEventListener('DOMContentLoaded', function(){
   function escapeAttr(t){ return escapeHtml(t).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
   function createSelect(options){
-    return options.map(v=>`<option value="${escapeAttr(v)}">${escapeHtml(v)}</option>`).join('');
+    return options.map(opt=>{
+      if(opt && typeof opt === 'object'){
+        const value = Object.prototype.hasOwnProperty.call(opt, 'value') ? opt.value : opt.label;
+        const label = Object.prototype.hasOwnProperty.call(opt, 'label') ? opt.label : opt.value;
+        return `<option value="${escapeAttr(value)}">${escapeHtml(label)}</option>`;
+      }
+      const v = opt;
+      return `<option value="${escapeAttr(v)}">${escapeHtml(v)}</option>`;
+    }).join('');
   }
+
+  const SECTION_SCOPE_OPTIONS = [
+    { value: 'repair',  label: 'Repair Existing Section' },
+    { value: 'replace', label: 'Replace Section' },
+    { value: 'install', label: 'Install New Section' }
+  ];
+
+  const WALK_GATE_OPTIONS = [
+    { value: 'Single Swing Walk Gate', label: 'Single Swing Walk Gate' },
+    { value: 'Double Swing Gate',      label: 'Double Swing Gate' }
+  ];
 
   function numberControl(name, placeholder='', min=0){
     return (
@@ -289,6 +308,39 @@ document.addEventListener('DOMContentLoaded', function(){
         '<button type="button" class="sp-step" data-dir="1" aria-label="increment">+</button>'+
       '</div>'
     );
+  }
+
+  function normalizeScopeType(value){
+    const v = String(value||'').toLowerCase();
+    if(v === 'replace' || v === 'replace section') return 'replace';
+    if(v === 'install' || v === 'install new section' || v === 'new') return 'install';
+    return 'repair';
+  }
+
+  function scopeTypeLabel(value){
+    const mode = normalizeScopeType(value);
+    const opt = SECTION_SCOPE_OPTIONS.find(o=>normalizeScopeType(o.value) === mode);
+    return opt ? opt.label : 'Repair Existing Section';
+  }
+
+  function isRepairScope(value){
+    return normalizeScopeType(value) === 'repair';
+  }
+
+  function isReplaceOrInstallScope(value){
+    const mode = normalizeScopeType(value);
+    return mode === 'replace' || mode === 'install';
+  }
+
+  function normalizeWalkGateType(value){
+    const txt = String(value||'').toLowerCase();
+    if(txt.includes('double')) return 'double';
+    return 'single';
+  }
+
+  function walkGateTypeLabel(value){
+    const type = normalizeWalkGateType(value);
+    return type === 'double' ? 'Double Swing Gate' : 'Single Swing Walk Gate';
   }
 
   function sectionTemplate(id, index){
@@ -308,15 +360,19 @@ document.addEventListener('DOMContentLoaded', function(){
           <label class="sp-label">Section Label (e.g., Front Right, Right Side, Back Right, etc)</label>
           <input class="sp-input" data-field="label" placeholder="Enter a label" />
         </div>
-        <div class="sp-field col-2">
+        <div class="sp-field col-3">
+          <label class="sp-label">Section Type</label>
+          <select class="sp-select" data-field="scopeType">${createSelect(SECTION_SCOPE_OPTIONS)}</select>
+        </div>
+        <div class="sp-field col-3">
           <label class="sp-label">Style</label>
           <select class="sp-select" data-field="style">${createSelect(SEED.style)}</select>
         </div>
-        <div class="sp-field col-2">
+        <div class="sp-field col-3">
           <label class="sp-label">Height</label>
           <select class="sp-select" data-field="height">${createSelect(SEED.height)}</select>
         </div>
-        <div class="sp-field col-2">
+        <div class="sp-field col-3">
           <label class="sp-label">Post Size</label>
           <select class="sp-select" data-field="postSize">${createSelect(SEED.postSize)}</select>
         </div>
@@ -334,7 +390,7 @@ document.addEventListener('DOMContentLoaded', function(){
           <label class="sp-label">LF to Trim</label>
           ${numberControl('trim','e.g., 6')}
         </div>
-        <div class="sp-field col-3">
+        <div class="sp-field col-3" data-scope-repair-only>
           <label class="sp-label">LF to Dig Out</label>
           ${numberControl('digOut','e.g., 10')}
         </div>
@@ -377,13 +433,13 @@ document.addEventListener('DOMContentLoaded', function(){
           <label class="sp-label">Puppy Pickets</label>
           <select class="sp-select" data-field="puppy">${createSelect(SEED.puppy)}</select>
         </div>
-        <div class="sp-field col-3">
+        <div class="sp-field col-3" data-scope-repair-only>
           <label class="sp-label"># Pickets to Replace</label>
           ${numberControl('wiPickets','0')}
         </div>
 
         <!-- Finial replacements (kept as a block) -->
-        <div class="sp-field col-12">
+        <div class="sp-field col-12" data-scope-repair-only>
           <label class="sp-label">Finial Replacements</label>
           <div data-finials></div>
           <div class="sp-row" style="margin-top:6px">
@@ -393,7 +449,7 @@ document.addEventListener('DOMContentLoaded', function(){
         </div>
 
         <!-- ========== GROUP: Posts & Caps ========== -->
-        <div class="sp-field col-12">
+        <div class="sp-field col-12" data-scope-repair-only>
           <label class="sp-label">Post Replacements</label>
           <div data-post-replacements></div>
           <div class="sp-row" style="margin-top:6px">
@@ -402,7 +458,7 @@ document.addEventListener('DOMContentLoaded', function(){
           </div>
         </div>
 
-        <div class="sp-field col-12">
+        <div class="sp-field col-12" data-scope-repair-only>
           <label class="sp-label">Post Realignments</label>
           <div data-post-realign></div>
           <div class="sp-row" style="margin-top:6px">
@@ -412,7 +468,7 @@ document.addEventListener('DOMContentLoaded', function(){
         </div>
 
         <!-- Post Cap replacements (kept as a block) -->
-        <div class="sp-field col-12">
+        <div class="sp-field col-12" data-scope-repair-only>
           <label class="sp-label">Post Cap Replacements</label>
           <div data-caps></div>
           <div class="sp-row" style="margin-top:6px">
@@ -424,7 +480,7 @@ document.addEventListener('DOMContentLoaded', function(){
         <div class="col-12 sp-divider"></div>
 
         <!-- ========== GROUP: Panel Replacements ========== -->
-        <div class="sp-field col-12">
+        <div class="sp-field col-12" data-scope-repair-only>
           <label class="sp-label">Panel Replacements</label>
           <div data-panels></div>
           <div class="sp-row" style="margin-top:6px">
@@ -436,7 +492,7 @@ document.addEventListener('DOMContentLoaded', function(){
         <div class="col-12 sp-divider"></div>
 
         <!-- ========== GROUP: Gates (unchanged, follows after above groups) ========== -->
-        <div class="sp-field col-3">
+        <div class="sp-field col-3" data-scope-repair-only>
           <label class="sp-label"># Walk Gates</label>
           ${numberControl('walkGates','0')}
         </div>
@@ -497,11 +553,8 @@ document.addEventListener('DOMContentLoaded', function(){
         <div class="sp-field col-12" data-wg-add-wrap style="display:none">
           <div class="sp-grid">
             <div class="sp-field col-3">
-              <label class="sp-label">Method</label>
-              <select class="sp-select" data-field="walkAddMethod">
-                <option value="Reuse Existing Panel">Reuse Existing Panel</option>
-                <option value="Build New Panel">Build New Panel</option>
-              </select>
+              <label class="sp-label">Gate Type</label>
+              <select class="sp-select" data-field="walkAddMethod">${createSelect(WALK_GATE_OPTIONS)}</select>
             </div>
             <div class="sp-field col-3">
               <label class="sp-label">Gate Post Size</label>
@@ -524,7 +577,7 @@ document.addEventListener('DOMContentLoaded', function(){
               <select class="sp-select" data-field="walkAddHinges">${createSelect(GATE.hingeTypes)}</select>
             </div>
           </div>
-          <div class="sp-hint">Reuse: 1 post, 1 bag concrete, hinges, latch, 2× 12ft frame sticks per gate. Build New: 1 post, 1 bag concrete, hinges, latch, 4× 12ft frame sticks, plus material for 25 pickets per gate. Labor: ~4 hours per added gate (1 person).</div>
+          <div class="sp-hint">Single swing: adds 2 labor hours per gate and 2× 12ft rails for each rail size in this section. Double swing: adds 3 labor hours per gate and 4× 12ft rails per rail size. When replacing or installing a new section, add 1 post and 1 Maximizer bag of concrete for each new gate.</div>
         </div>
 
         <!-- Notes (section-specific) - LAST -->
@@ -541,6 +594,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const id = uid();
     state.sections.push({
       id,
+      scopeType: 'repair',
       collapsed:false,
       railsCount:2,
       rails:[
@@ -563,7 +617,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
       // NEW: Add Walk Gate fields
       walkGatesAdd: 0,
-      walkAddMethod: 'Reuse Existing Panel',
+      walkAddMethod: 'Single Swing Walk Gate',
       walkAddPostSize: '2x2',
       walkAddFrameSize: SEED.railSize[0],
       walkAddPicketSize: SEED.picketSize[0],
@@ -692,6 +746,7 @@ document.addEventListener('DOMContentLoaded', function(){
     return {
       id,
       label: val('label').trim(),
+      scopeType: normalizeScopeType(val('scopeType') || 'repair'),
       style: val('style'),
       height: val('height'),
       postSize: val('postSize'),
@@ -771,6 +826,7 @@ document.addEventListener('DOMContentLoaded', function(){
       }
     }
     set('label', data.label||'');
+    set('scopeType', normalizeScopeType(data.scopeType));
     set('style', data.style||SEED.style[0]);
     set('height', data.height||'4ft');
     set('postSize', data.postSize||'2x2');
@@ -799,7 +855,8 @@ document.addEventListener('DOMContentLoaded', function(){
     set('walkRebuildHinges', data.walkRebuildHinges || (GATE.hingeTypes && GATE.hingeTypes[0]) || 'Door Hinges');
 
     set('walkGatesAdd', data.walkGatesAdd||'');
-    set('walkAddMethod', data.walkAddMethod || 'Reuse Existing Panel');
+    const gateVal = WALK_GATE_OPTIONS.some(opt=>opt.value === data.walkAddMethod) ? data.walkAddMethod : 'Single Swing Walk Gate';
+    set('walkAddMethod', gateVal);
     set('walkAddPostSize', data.walkAddPostSize || data.postSize || '2x2');
     set('walkAddFrameSize', data.walkAddFrameSize || SEED.railSize[0]);
     set('walkAddPicketSize', data.walkAddPicketSize || SEED.picketSize[0]);
@@ -1418,7 +1475,11 @@ document.addEventListener('DOMContentLoaded', function(){
         const cond = card.querySelector(`[data-if="${key}"]`);
         if(cond) cond.style.display = t.checked ? 'block' : 'none';
       }
-      updateWalkGateConditional(card);
+      if(t.matches('[data-field="scopeType"]')){
+        updateScopeConditional(card);
+      } else {
+        updateWalkGateConditional(card);
+      }
       persist();
     });
   }
@@ -1447,6 +1508,22 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
 
+  function updateScopeConditional(card){
+    if(!card) return;
+    const scopeSel = card.querySelector('[data-field="scopeType"]');
+    const scope = normalizeScopeType(scopeSel ? scopeSel.value : 'repair');
+    card.setAttribute('data-scope-mode', scope);
+    const repairOnly = card.querySelectorAll('[data-scope-repair-only]');
+    repairOnly.forEach(el=>{
+      if(scope === 'repair'){
+        el.style.display = '';
+      } else {
+        el.style.display = 'none';
+      }
+    });
+    updateWalkGateConditional(card);
+  }
+
   function updateWalkGateConditional(card){
     const getN = (f)=>{
       const box = card.querySelector(`.sp-number[data-field="${f}"] input`);
@@ -1457,19 +1534,21 @@ document.addEventListener('DOMContentLoaded', function(){
     const rb = getN('walkGatesRebuild');
     const add = getN('walkGatesAdd');
 
+    const scope = card.getAttribute('data-scope-mode') || 'repair';
+    const allowExistingGateOps = scope === 'repair';
+
     const wrap = card.querySelector('[data-wg-wrap]');
-    if(wrap){ wrap.style.display = wg>0 ? 'block' : 'none'; }
+    if(wrap){ wrap.style.display = (allowExistingGateOps && wg>0) ? 'block' : 'none'; }
     const hwWrap = card.querySelector('[data-wg-hw-wrap]');
-    if(hwWrap){ hwWrap.style.display = (wg>0 && hw>0) ? 'block' : 'none'; }
+    if(hwWrap){ hwWrap.style.display = (allowExistingGateOps && wg>0 && hw>0) ? 'block' : 'none'; }
     const rbWrap = card.querySelector('[data-wg-rebuild-wrap]');
-    if(rbWrap){ rbWrap.style.display = (wg>0 && rb>0) ? 'block' : 'none'; }
+    if(rbWrap){ rbWrap.style.display = (allowExistingGateOps && wg>0 && rb>0) ? 'block' : 'none'; }
 
     const addWrap = card.querySelector('[data-wg-add-wrap]');
     if(addWrap){ addWrap.style.display = add>0 ? 'block' : 'none'; }
-    const methodSel = card.querySelector('[data-field="walkAddMethod"]');
     const pickWrap  = card.querySelector('[data-wg-add-pickets]');
-    if(pickWrap && methodSel){
-      pickWrap.style.display = (add>0 && methodSel.value === 'Build New Panel') ? 'block' : 'none';
+    if(pickWrap){
+      pickWrap.style.display = add>0 ? 'block' : 'none';
     }
   }
 
@@ -1484,7 +1563,7 @@ document.addEventListener('DOMContentLoaded', function(){
       writeSectionToDOM(card, s);
       attachNumberHandlers(card);
       attachRailsHandlers(card);
-      updateWalkGateConditional(card);
+      updateScopeConditional(card);
 
       const titleEl = $('.sp-card-title', card);
       const labelInput = card.querySelector('[data-field="label"]');
@@ -1514,7 +1593,11 @@ document.addEventListener('DOMContentLoaded', function(){
       $$('input, select, textarea', card).forEach(el=>{
         el.addEventListener('input', ()=>{ persist(); });
         el.addEventListener('change', ()=>{
-          updateWalkGateConditional(card);
+          if(el.matches('[data-field="scopeType"]')){
+            updateScopeConditional(card);
+          } else {
+            updateWalkGateConditional(card);
+          }
           persist();
         });
       });
@@ -1702,7 +1785,7 @@ document.addEventListener('DOMContentLoaded', function(){
       wiPickets:0, wiPatches:0, wiRails:0,
       posts2x2:0, posts3x3:0, posts1p5:0, posts4x4:0, postsRealign2x2:0, postsRealign3x3:0,
       walkGates:0, walkRealign:0, walkHardware:0, walkRebuild:0,
-      walkGateAdds:0,
+      walkGateAdds:0, walkGateAddsSingle:0, walkGateAddsDouble:0,
       panelsPrefab:0, panelsCustom:0
     };
     const materials = {};
@@ -1737,30 +1820,39 @@ document.addEventListener('DOMContentLoaded', function(){
       lines.push(`- Picket: ${picket}`);
       lines.push(`- Puppy Pickets: ${s.puppy}`);
       lines.push(`- Painting: ${s.painting || 'Paint Section'}`);
+      const scopeMode = normalizeScopeType(s.scopeType);
+      const isRepairSection = scopeMode === 'repair';
+      lines.push(`- Section Type: ${scopeTypeLabel(s.scopeType)}`);
 
       lines.push(`- Length: ${numOrDash(s.length)} ft`);
       if (s.hardscape > 0) lines.push(`- Over hardscape: ${s.hardscape} lf`);
       if (s.trim > 0)      lines.push(`- Trim: ${s.trim} lf`);
-      if (s.digOut > 0)    lines.push(`- Dig out: ${s.digOut} lf`);
+      if (isRepairSection && s.digOut > 0)    lines.push(`- Dig out: ${s.digOut} lf`);
 
       const i = (v)=> (parseInt(v||0,10) || 0);
-      lines.push(`- Repairs:`);
-      lines.push(`  - Pickets to replace: ${i(s.wiPickets)}`);
-      lines.push(`  - Rail patches: ${sectionPatchTotal}`);
-      lines.push(`  - Full rail replacements: ${sectionReplTotal}`);
-      const replaceCounts = countPostGroups(s.postReplacements);
-      const realignCounts = countPostGroups(s.postRealignments);
-      lines.push(`  - 2x2 posts to replace: ${replaceCounts.posts2x2}`);
-      lines.push(`  - 3x3 posts to replace: ${replaceCounts.posts3x3}`);
-      lines.push(`  - 1 1/2" x 1 1/2" posts to replace: ${replaceCounts.posts1p5}`);
-      lines.push(`  - 4x4 posts to replace: ${replaceCounts.posts4x4}`);
-      lines.push(`  - 2x2 posts to realign: ${realignCounts.posts2x2}`);
-      lines.push(`  - 3x3 posts to realign: ${realignCounts.posts3x3}`);
+      let replaceCounts = { posts2x2:0, posts3x3:0, posts1p5:0, posts4x4:0 };
+      let realignCounts = { posts2x2:0, posts3x3:0 };
+      if(isRepairSection){
+        lines.push(`- Repairs:`);
+        lines.push(`  - Pickets to replace: ${i(s.wiPickets)}`);
+        lines.push(`  - Rail patches: ${sectionPatchTotal}`);
+        lines.push(`  - Full rail replacements: ${sectionReplTotal}`);
+        replaceCounts = countPostGroups(s.postReplacements);
+        realignCounts = countPostGroups(s.postRealignments);
+        lines.push(`  - 2x2 posts to replace: ${replaceCounts.posts2x2}`);
+        lines.push(`  - 3x3 posts to replace: ${replaceCounts.posts3x3}`);
+        lines.push(`  - 1 1/2" x 1 1/2" posts to replace: ${replaceCounts.posts1p5}`);
+        lines.push(`  - 4x4 posts to replace: ${replaceCounts.posts4x4}`);
+        lines.push(`  - 2x2 posts to realign: ${realignCounts.posts2x2}`);
+        lines.push(`  - 3x3 posts to realign: ${realignCounts.posts3x3}`);
+      } else {
+        lines.push(`- Repairs: not applicable for this section type`);
+      }
 
       // NEW: Finials
       const finArr = Array.isArray(s.finials) ? s.finials : [];
       const finCount = finArr.reduce((acc,f)=> acc + (parseInt(f?.qty||0,10) || 0), 0);
-      if(finCount){
+      if(isRepairSection && finCount){
         lines.push(`- Finial replacements: ${finCount}`);
         finArr.forEach(f=>{
           const q = parseInt(f?.qty||0,10) || 0; if(!q) return;
@@ -1770,36 +1862,38 @@ document.addEventListener('DOMContentLoaded', function(){
 
       // PANEL REPLACEMENTS (per-row)
       const panelArr = Array.isArray(s.panels) ? s.panels : [];
-      if(panelArr.length){ lines.push(`- Panel replacements:`); }
-      panelArr.forEach(p=>{
-        const q = parseInt(p?.qty||0,10)||0; if(!q) return;
-        const feet = feetFromHeightStr(p.height);
-        const eligible = isPrefabEligible(p.widthIn, p.railSize, p.picketSize);
-        const isFin = /Finials/i.test(p.style);
-        lines.push(`  - ${q} × ${p.widthIn||0}" wide panel — ${p.height}, ${p.style}, rails ${p.railSize}, pickets ${p.picketSize} ${eligible?'(prefab eligible)':'(build on site)'}`);
-        // Labor
-        const panelHours = eligible ? q * 0.5 : q * 1.5;
-        manHours += panelHours;
-        welderHours += panelHours;
-        if(eligible){ totals.panelsPrefab += q; }
-        else        { totals.panelsCustom += q; }
+      if(isRepairSection){
+        if(panelArr.length){ lines.push(`- Panel replacements:`); }
+        panelArr.forEach(p=>{
+          const q = parseInt(p?.qty||0,10)||0; if(!q) return;
+          const feet = feetFromHeightStr(p.height);
+          const eligible = isPrefabEligible(p.widthIn, p.railSize, p.picketSize);
+          const isFin = /Finials/i.test(p.style);
+          lines.push(`  - ${q} × ${p.widthIn||0}" wide panel — ${p.height}, ${p.style}, rails ${p.railSize}, pickets ${p.picketSize} ${eligible?'(prefab eligible)':'(build on site)'}`);
+          // Labor
+          const panelHours = eligible ? q * 0.5 : q * 1.5;
+          manHours += panelHours;
+          welderHours += panelHours;
+          if(eligible){ totals.panelsPrefab += q; }
+          else        { totals.panelsCustom += q; }
 
-        // Materials / Costing accumulators handled after loop below
-        // Store a scratch list on section to pick up later
-        if(!s._panelCalc) s._panelCalc = []; s._panelCalc.push({
-          qty:q, feet, eligible, style:p.style, picketSize:p.picketSize, railSize:p.railSize, widthIn: parseInt(p.widthIn,10)||0, finialStyle: p.finialStyle
+          // Materials / Costing accumulators handled after loop below
+          // Store a scratch list on section to pick up later
+          if(!s._panelCalc) s._panelCalc = []; s._panelCalc.push({
+            qty:q, feet, eligible, style:p.style, picketSize:p.picketSize, railSize:p.railSize, widthIn: parseInt(p.widthIn,10)||0, finialStyle: p.finialStyle
+          });
+
+          if(isFin && !eligible){
+            // custom build w/ finials -> add 26 per panel to materials
+            addMat(materials, `finials - Cast Iron - ${p.finialStyle} (${p.picketSize})`, q*26);
+          }
         });
-
-        if(isFin && !eligible){
-          // custom build w/ finials -> add 26 per panel to materials
-          addMat(materials, `finials - Cast Iron - ${p.finialStyle} (${p.picketSize})`, q*26);
-        }
-      });
+      }
 
       // NEW: Caps
       const capArr = Array.isArray(s.caps) ? s.caps : [];
       const capCount = capArr.reduce((acc,c)=> acc + (parseInt(c?.qty||0,10) || 0), 0);
-      if(capCount){
+      if(isRepairSection && capCount){
         lines.push(`- Post cap replacements: ${capCount}`);
         capArr.forEach(c=>{
           const q = parseInt(c?.qty||0,10) || 0; if(!q) return;
@@ -1812,7 +1906,7 @@ document.addEventListener('DOMContentLoaded', function(){
       const wgr = i(s.walkGatesRealign);
       const wgh = i(s.walkGatesHardware);
       const wgb = i(s.walkGatesRebuild);
-      if (wg || wgr || wgh || wgb){
+      if (isRepairSection && (wg || wgr || wgh || wgb)){
         lines.push(`- Walk gates: ${wg}`);
         if (wgr) lines.push(`  - Realign: ${wgr}`);
         if (wgh) lines.push(`  - Hardware replacements: ${wgh} (Latch: ${s.walkLatch||'-'}, Hinges: ${s.walkHinges||'-'})`);
@@ -1822,7 +1916,8 @@ document.addEventListener('DOMContentLoaded', function(){
       // Add walk gate into existing fence
       const wga = i(s.walkGatesAdd);
       if (wga){
-        lines.push(`- Add walk gate(s): ${wga} — ${s.walkAddMethod}`);
+        const gateTypeLabel = walkGateTypeLabel(s.walkAddMethod);
+        lines.push(`- Add walk gate(s): ${wga} — ${gateTypeLabel}`);
         lines.push(`  - Post: ${s.walkAddPostSize}; Frame: ${s.walkAddFrameSize}; Pickets: ${s.walkAddPicketSize}; Latch: ${s.walkAddLatch}; Hinges: ${s.walkAddHinges}`);
       }
 
@@ -1832,20 +1927,25 @@ document.addEventListener('DOMContentLoaded', function(){
       totals.length       += i(s.length);
       totals.hardscape    += i(s.hardscape);
       totals.trim         += i(s.trim);
-      totals.digOut       += i(s.digOut);
-      totals.finials      += finCount;
-      totals.wiPickets    += i(s.wiPickets);
-      totals.wiPatches    += sectionPatchTotal;
-      totals.wiRails      += sectionReplTotal;
-      addPostCounts(totals, replaceCounts);
-      totals.postsRealign2x2 += realignCounts.posts2x2;
-      totals.postsRealign3x3 += realignCounts.posts3x3;
-      totals.walkGates   += wg;
-      totals.walkRealign += wgr;
-      totals.walkHardware+= wgh;
-      totals.walkRebuild += wgb;
-      totals.walkGateAdds += wga;
-      totals.caps        += capCount;
+      if(isRepairSection) totals.digOut       += i(s.digOut);
+      if(isRepairSection) totals.finials      += finCount;
+      if(isRepairSection) totals.wiPickets    += i(s.wiPickets);
+      if(isRepairSection) totals.wiPatches    += sectionPatchTotal;
+      if(isRepairSection) totals.wiRails      += sectionReplTotal;
+      if(isRepairSection) addPostCounts(totals, replaceCounts);
+      if(isRepairSection) totals.postsRealign2x2 += realignCounts.posts2x2;
+      if(isRepairSection) totals.postsRealign3x3 += realignCounts.posts3x3;
+      if(isRepairSection) totals.walkGates   += wg;
+      if(isRepairSection) totals.walkRealign += wgr;
+      if(isRepairSection) totals.walkHardware+= wgh;
+      if(isRepairSection) totals.walkRebuild += wgb;
+      if(isRepairSection) totals.caps        += capCount;
+      if(wga){
+        const gateType = normalizeWalkGateType(s.walkAddMethod);
+        totals.walkGateAdds += wga;
+        if(gateType === 'double'){ totals.walkGateAddsDouble = (totals.walkGateAddsDouble||0) + wga; }
+        else                     { totals.walkGateAddsSingle = (totals.walkGateAddsSingle||0) + wga; }
+      }
     });
 
     if (state.sections.length){
@@ -1871,7 +1971,12 @@ document.addEventListener('DOMContentLoaded', function(){
       if (t.walkRealign)   lines.push(`- Walk gates to realign: ${t.walkRealign}`);
       if (t.walkHardware)  lines.push(`- Walk gate hardware replacements: ${t.walkHardware}`);
       if (t.walkRebuild)   lines.push(`- Walk gates to rebuild: ${t.walkRebuild}`);
-      if (t.walkGateAdds)  lines.push(`- Walk gates to add: ${t.walkGateAdds}`);
+      if (t.walkGateAddsSingle || t.walkGateAddsDouble){
+        const parts = [];
+        if (t.walkGateAddsSingle) parts.push(describeCount(t.walkGateAddsSingle, 'single swing gate', 'single swing gates'));
+        if (t.walkGateAddsDouble) parts.push(describeCount(t.walkGateAddsDouble, 'double swing gate', 'double swing gates'));
+        lines.push(`- Walk gates to add: ${joinParts(parts)}`);
+      }
       if (t.panelsPrefab) lines.push(`- Prefab panels to install: ${t.panelsPrefab}`);
       if (t.panelsCustom) lines.push(`- Panels to custom-build: ${t.panelsCustom}`);
     }
@@ -1970,8 +2075,12 @@ document.addEventListener('DOMContentLoaded', function(){
     if (totals.walkRebuild > 0){
       addServiceLine('Rebuild Walk Gates', `Rebuild ${describeCount(totals.walkRebuild, 'walk gate', 'walk gates')} with new frame and pickets to match the fence.`);
     }
-    if (totals.walkGateAdds > 0){
-      addServiceLine('Add New Walk Gate', `Cut in and install ${describeCount(totals.walkGateAdds, 'new walk gate', 'new walk gates')} complete with posts, frame, and hardware.`);
+    if (totals.walkGateAddsSingle > 0 || totals.walkGateAddsDouble > 0){
+      const parts = [];
+      if (totals.walkGateAddsSingle > 0) parts.push(describeCount(totals.walkGateAddsSingle, 'single swing gate', 'single swing gates'));
+      if (totals.walkGateAddsDouble > 0) parts.push(describeCount(totals.walkGateAddsDouble, 'double swing gate', 'double swing gates'));
+      const detail = parts.length ? joinParts(parts) : describeCount(totals.walkGateAdds, 'new walk gate', 'new walk gates');
+      addServiceLine('Add New Walk Gate', `Cut in and install ${detail} complete with posts, frame, and hardware.`);
     }
 
     renderServiceLineNotes(serviceLines);
@@ -2010,8 +2119,8 @@ document.addEventListener('DOMContentLoaded', function(){
     const capHours = totals.caps * (20/60);
     manHours += capHours;
     helperHours += capHours;
-    // Added gates: 4 hours each
-    const addedGateHours = totals.walkGateAdds * 4;
+    // Added gates: scoped labor by gate type
+    const addedGateHours = (totals.walkGateAddsSingle * 2) + (totals.walkGateAddsDouble * 3);
     manHours += addedGateHours;
     welderHours += addedGateHours;
 
@@ -2027,7 +2136,7 @@ document.addEventListener('DOMContentLoaded', function(){
         raw1p5Total += Math.ceil(count / perStick);
       }
       const addG = parseInt(s.walkGatesAdd||0,10) || 0;
-      if(addG>0 && (s.walkAddPostSize||'').trim() === '1 1/2" x 1 1/2"'){
+      if(addG>0 && isReplaceOrInstallScope(s.scopeType) && (s.walkAddPostSize||'').trim() === '1 1/2" x 1 1/2"'){
         const perStickAdd = Math.max(1, Math.floor(12 / Math.max(1, postLen)));
         raw1p5Total += Math.ceil(addG / perStickAdd);
       }
@@ -2043,7 +2152,7 @@ document.addEventListener('DOMContentLoaded', function(){
       const nReplace = repCounts.posts2x2 || 0;
       if(nReplace>0){ posts2x2ByLenCalc[postLen] = (posts2x2ByLenCalc[postLen]||0) + nReplace; }
       const addG = parseInt(s.walkGatesAdd||0,10) || 0;
-      if(addG>0 && (s.walkAddPostSize||'').trim() === '2x2'){
+      if(addG>0 && isReplaceOrInstallScope(s.scopeType) && (s.walkAddPostSize||'').trim() === '2x2'){
         posts2x2ByLenCalc[postLen] = (posts2x2ByLenCalc[postLen]||0) + addG;
       }
     });
@@ -2063,7 +2172,7 @@ document.addEventListener('DOMContentLoaded', function(){
         posts3x3ByLenCalc[L] = (posts3x3ByLenCalc[L]||0) + sticks;
       }
       const addG = parseInt(s.walkGatesAdd||0,10) || 0;
-      if(addG>0 && (s.walkAddPostSize||'').trim() === '3x3'){
+      if(addG>0 && isReplaceOrInstallScope(s.scopeType) && (s.walkAddPostSize||'').trim() === '3x3'){
         const perStickAdd = Math.max(1, Math.floor(12 / Math.max(1, L)));
         const sticksAdd = Math.ceil(addG / perStickAdd);
         posts3x3ByLenCalc[L] = (posts3x3ByLenCalc[L]||0) + sticksAdd;
@@ -2085,7 +2194,7 @@ document.addEventListener('DOMContentLoaded', function(){
         posts4x4ByLenCalc[L] = (posts4x4ByLenCalc[L]||0) + sticks;
       }
       const addG = parseInt(s.walkGatesAdd||0,10) || 0;
-      if(addG>0 && (s.walkAddPostSize||'').trim() === '4x4'){
+      if(addG>0 && isReplaceOrInstallScope(s.scopeType) && (s.walkAddPostSize||'').trim() === '4x4'){
         const perStickAdd = Math.max(1, Math.floor(12 / Math.max(1, L)));
         const sticksAdd = Math.ceil(addG / perStickAdd);
         posts4x4ByLenCalc[L] = (posts4x4ByLenCalc[L]||0) + sticksAdd;
@@ -2096,7 +2205,13 @@ document.addEventListener('DOMContentLoaded', function(){
     if(raw4x4Total>0){ addMat(materials, '4x4x12 raw steel', raw4x4Total); }
 
     // Concrete
-    const concreteBagsCalc = totals.posts2x2 + totals.posts3x3 + totals.posts1p5 + totals.posts4x4 + Math.ceil((totals.postsRealign2x2 + totals.postsRealign3x3) * 0.5) + totals.walkRealign + totals.walkGateAdds;
+    let gateConcreteBags = 0;
+    state.sections.forEach(s=>{
+      if(isReplaceOrInstallScope(s.scopeType)){
+        gateConcreteBags += parseInt(s.walkGatesAdd||0,10) || 0;
+      }
+    });
+    const concreteBagsCalc = totals.posts2x2 + totals.posts3x3 + totals.posts1p5 + totals.posts4x4 + Math.ceil((totals.postsRealign2x2 + totals.postsRealign3x3) * 0.5) + totals.walkRealign + gateConcreteBags;
 
     // Gate bits + gate materials
     const latchCounts = {};
@@ -2127,22 +2242,23 @@ document.addEventListener('DOMContentLoaded', function(){
       if(addG>0){
         if(s.walkAddLatch) latchCounts[s.walkAddLatch] = (latchCounts[s.walkAddLatch]||0) + addG;
         if(s.walkAddHinges) hingeCounts[s.walkAddHinges] = (hingeCounts[s.walkAddHinges]||0) + addG;
-        const frame = s.walkAddFrameSize || '';
-        if ((s.walkAddMethod||'') === 'Reuse Existing Panel'){
-          addMat(materials, `12ft rail sticks (${frame})`, addG * 2);
-        } else {
-          addMat(materials, `12ft rail sticks (${frame})`, addG * 4);
-          let ph = parseInt(s.picketHeight||0,10) || 0;
-          if (ph <= 0) {
-            const hf = feetFromStr(s.height);
-            if (hf > 0) ph = hf * 12;
+        const gateType = normalizeWalkGateType(s.walkAddMethod);
+        const railMultiplier = gateType === 'double' ? 4 : 2;
+        const railSizes = new Set();
+        const rCount = s.railsCount || (s.rails||[]).length || 0;
+        if(rCount>0){
+          for(let i=0;i<rCount;i++){
+            const r = (s.rails||[])[i] || {};
+            if(r && r.size) railSizes.add(r.size);
+            if(r && r.stacked && r.size2) railSizes.add(r.size2);
           }
-          if (ph <= 0) ph = 54;
-          const perStick = Math.max(1, Math.floor(144 / ph));
-          const totalPickets = 25 * addG;
-          const sticks = Math.ceil(totalPickets / perStick);
-          addMat(materials, `12ft picket sticks (${s.walkAddPicketSize})`, sticks);
         }
+        if(railSizes.size === 0 && s.walkAddFrameSize){
+          railSizes.add(s.walkAddFrameSize);
+        }
+        railSizes.forEach(size=>{
+          addMat(materials, `12ft rail sticks (${size})`, addG * railMultiplier);
+        });
       }
     });
 
@@ -2572,7 +2688,7 @@ document.addEventListener('DOMContentLoaded', function(){
       sub.push('- 1x spray can (red oxide primer)');
     }
 
-      const railSizesSet = new Set();
+    const railSizesSet = new Set();
     state.sections.forEach(s => {
       const rCount = s.railsCount || (s.rails||[]).length || 0;
       for(let i=0;i<rCount;i++){
@@ -2600,7 +2716,12 @@ document.addEventListener('DOMContentLoaded', function(){
     if (totals.walkRealign > 0)     sub.push('- Walk gates to realign: '+totals.walkRealign);
     if (totals.walkHardware > 0)    sub.push('- Walk gate hardware replacements: '+totals.walkHardware);
     if (totals.walkRebuild > 0)     sub.push('- Walk gates to rebuild: '+totals.walkRebuild);
-    if (totals.walkGateAdds > 0)    sub.push('- Walk gates to add: '+totals.walkGateAdds);
+    if (totals.walkGateAddsSingle > 0 || totals.walkGateAddsDouble > 0){
+      const parts = [];
+      if (totals.walkGateAddsSingle > 0) parts.push(describeCount(totals.walkGateAddsSingle, 'single swing gate', 'single swing gates'));
+      if (totals.walkGateAddsDouble > 0) parts.push(describeCount(totals.walkGateAddsDouble, 'double swing gate', 'double swing gates'));
+      sub.push('- Walk gates to add: '+joinParts(parts));
+    }
     if (totals.finials > 0)         sub.push('- Finials to replace: '+totals.finials);
     if (totals.caps > 0)            sub.push('- Post caps to replace: '+totals.caps);
     if (totals.digOut > 0)          sub.push('- Dig out: '+totals.digOut+' lf');
