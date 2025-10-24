@@ -14,7 +14,7 @@
     --sp-bg:#f8fafc;
     --sp-card:#ffffff;
     --sp-radius:14px;
-    --sp-stage-bg:#ebebeb;
+    --sp-stage-bg:#ffffff;
   }
   #sp-scope{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,"Helvetica Neue",Arial,"Noto Sans","Apple Color Emoji","Segoe UI Emoji";color:var(--sp-ink)}
   #sp-scope *{box-sizing:border-box}
@@ -31,6 +31,7 @@
   .sp-btn.primary{background:var(--sp-green);color:#fff;border-color:var(--sp-green)}
   .sp-btn.ghost{background:#fff}
   .sp-btn.danger{background:#fff;color:#b91c1c;border-color:#fecaca}
+  .sp-btn.danger.is-confirm{background:#b91c1c;color:#fff;border-color:#b91c1c}
 
   .sp-sections{display:grid;gap:16px}
   .sp-card{background:var(--sp-card);border:1px solid var(--sp-border);border-radius:var(--sp-radius);padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
@@ -278,27 +279,8 @@ document.addEventListener('DOMContentLoaded', function(){
   function escapeAttr(t){ return escapeHtml(t).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
   function createSelect(options){
-    return options.map(opt=>{
-      if(opt && typeof opt === 'object'){
-        const value = Object.prototype.hasOwnProperty.call(opt, 'value') ? opt.value : opt.label;
-        const label = Object.prototype.hasOwnProperty.call(opt, 'label') ? opt.label : opt.value;
-        return `<option value="${escapeAttr(value)}">${escapeHtml(label)}</option>`;
-      }
-      const v = opt;
-      return `<option value="${escapeAttr(v)}">${escapeHtml(v)}</option>`;
-    }).join('');
+    return options.map(v=>`<option value="${escapeAttr(v)}">${escapeHtml(v)}</option>`).join('');
   }
-
-  const SECTION_SCOPE_OPTIONS = [
-    { value: 'repair',  label: 'Repair Existing Section' },
-    { value: 'replace', label: 'Replace Section' },
-    { value: 'install', label: 'Install New Section' }
-  ];
-
-  const WALK_GATE_OPTIONS = [
-    { value: 'Single Swing Walk Gate', label: 'Single Swing Walk Gate' },
-    { value: 'Double Swing Gate',      label: 'Double Swing Gate' }
-  ];
 
   function numberControl(name, placeholder='', min=0){
     return (
@@ -308,39 +290,6 @@ document.addEventListener('DOMContentLoaded', function(){
         '<button type="button" class="sp-step" data-dir="1" aria-label="increment">+</button>'+
       '</div>'
     );
-  }
-
-  function normalizeScopeType(value){
-    const v = String(value||'').toLowerCase();
-    if(v === 'replace' || v === 'replace section') return 'replace';
-    if(v === 'install' || v === 'install new section' || v === 'new') return 'install';
-    return 'repair';
-  }
-
-  function scopeTypeLabel(value){
-    const mode = normalizeScopeType(value);
-    const opt = SECTION_SCOPE_OPTIONS.find(o=>normalizeScopeType(o.value) === mode);
-    return opt ? opt.label : 'Repair Existing Section';
-  }
-
-  function isRepairScope(value){
-    return normalizeScopeType(value) === 'repair';
-  }
-
-  function isReplaceOrInstallScope(value){
-    const mode = normalizeScopeType(value);
-    return mode === 'replace' || mode === 'install';
-  }
-
-  function normalizeWalkGateType(value){
-    const txt = String(value||'').toLowerCase();
-    if(txt.includes('double')) return 'double';
-    return 'single';
-  }
-
-  function walkGateTypeLabel(value){
-    const type = normalizeWalkGateType(value);
-    return type === 'double' ? 'Double Swing Gate' : 'Single Swing Walk Gate';
   }
 
   function sectionTemplate(id, index){
@@ -360,21 +309,46 @@ document.addEventListener('DOMContentLoaded', function(){
           <label class="sp-label">Section Label (e.g., Front Right, Right Side, Back Right, etc)</label>
           <input class="sp-input" data-field="label" placeholder="Enter a label" />
         </div>
-        <div class="sp-field col-3">
-          <label class="sp-label">Section Type</label>
-          <select class="sp-select" data-field="scopeType">${createSelect(SECTION_SCOPE_OPTIONS)}</select>
+        <div class="sp-field col-2">
+          <label class="sp-label">Section Scope</label>
+          <select class="sp-select" data-field="scopeType">
+            <option value="repair">Repair Existing</option>
+            <option value="replace">Replace Section</option>
+            <option value="install">Install New Section</option>
+          </select>
         </div>
-        <div class="sp-field col-3">
+        <div class="sp-field col-2">
           <label class="sp-label">Style</label>
           <select class="sp-select" data-field="style">${createSelect(SEED.style)}</select>
         </div>
-        <div class="sp-field col-3">
+        <div class="sp-field col-2">
           <label class="sp-label">Height</label>
           <select class="sp-select" data-field="height">${createSelect(SEED.height)}</select>
         </div>
-        <div class="sp-field col-3">
+        <div class="sp-field col-2">
           <label class="sp-label">Post Size</label>
           <select class="sp-select" data-field="postSize">${createSelect(SEED.postSize)}</select>
+        </div>
+        <div class="sp-field col-2" data-install-only>
+          <label class="sp-label">Post Spacing (ft)</label>
+          <select class="sp-select" data-field="postSpacing">
+            <option value="4">4 ft</option>
+            <option value="5">5 ft</option>
+            <option value="6">6 ft</option>
+            <option value="8">8 ft</option>
+            <option value="10">10 ft</option>
+          </select>
+        </div>
+        <div class="sp-field col-2" data-install-only>
+          <label class="sp-label">Panel Attachment</label>
+          <select class="sp-select" data-field="panelAttachment">
+            <option value="Welding">Welding</option>
+            <option value="Brackets">Brackets</option>
+          </select>
+        </div>
+        <div class="sp-field col-2" data-install-finials style="display:none">
+          <label class="sp-label">Finial Style</label>
+          <select class="sp-select" data-field="installFinialStyle">${createSelect(SEED.finialStyles)}</select>
         </div>
 
         <!-- Move these up directly after Post Size -->
@@ -390,7 +364,7 @@ document.addEventListener('DOMContentLoaded', function(){
           <label class="sp-label">LF to Trim</label>
           ${numberControl('trim','e.g., 6')}
         </div>
-        <div class="sp-field col-3" data-scope-repair-only>
+        <div class="sp-field col-3" data-repair-only>
           <label class="sp-label">LF to Dig Out</label>
           ${numberControl('digOut','e.g., 10')}
         </div>
@@ -433,13 +407,13 @@ document.addEventListener('DOMContentLoaded', function(){
           <label class="sp-label">Puppy Pickets</label>
           <select class="sp-select" data-field="puppy">${createSelect(SEED.puppy)}</select>
         </div>
-        <div class="sp-field col-3" data-scope-repair-only>
+        <div class="sp-field col-3" data-repair-only>
           <label class="sp-label"># Pickets to Replace</label>
           ${numberControl('wiPickets','0')}
         </div>
 
         <!-- Finial replacements (kept as a block) -->
-        <div class="sp-field col-12" data-scope-repair-only>
+        <div class="sp-field col-12" data-repair-only>
           <label class="sp-label">Finial Replacements</label>
           <div data-finials></div>
           <div class="sp-row" style="margin-top:6px">
@@ -449,7 +423,7 @@ document.addEventListener('DOMContentLoaded', function(){
         </div>
 
         <!-- ========== GROUP: Posts & Caps ========== -->
-        <div class="sp-field col-12" data-scope-repair-only>
+        <div class="sp-field col-12" data-repair-only>
           <label class="sp-label">Post Replacements</label>
           <div data-post-replacements></div>
           <div class="sp-row" style="margin-top:6px">
@@ -458,7 +432,7 @@ document.addEventListener('DOMContentLoaded', function(){
           </div>
         </div>
 
-        <div class="sp-field col-12" data-scope-repair-only>
+        <div class="sp-field col-12" data-repair-only>
           <label class="sp-label">Post Realignments</label>
           <div data-post-realign></div>
           <div class="sp-row" style="margin-top:6px">
@@ -468,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function(){
         </div>
 
         <!-- Post Cap replacements (kept as a block) -->
-        <div class="sp-field col-12" data-scope-repair-only>
+        <div class="sp-field col-12" data-repair-only>
           <label class="sp-label">Post Cap Replacements</label>
           <div data-caps></div>
           <div class="sp-row" style="margin-top:6px">
@@ -480,7 +454,7 @@ document.addEventListener('DOMContentLoaded', function(){
         <div class="col-12 sp-divider"></div>
 
         <!-- ========== GROUP: Panel Replacements ========== -->
-        <div class="sp-field col-12" data-scope-repair-only>
+        <div class="sp-field col-12" data-repair-only>
           <label class="sp-label">Panel Replacements</label>
           <div data-panels></div>
           <div class="sp-row" style="margin-top:6px">
@@ -492,11 +466,11 @@ document.addEventListener('DOMContentLoaded', function(){
         <div class="col-12 sp-divider"></div>
 
         <!-- ========== GROUP: Gates (unchanged, follows after above groups) ========== -->
-        <div class="sp-field col-3" data-scope-repair-only>
+        <div class="sp-field col-3" data-repair-only>
           <label class="sp-label"># Walk Gates</label>
           ${numberControl('walkGates','0')}
         </div>
-        <div class="sp-field col-12" data-wg-wrap style="display:none">
+        <div class="sp-field col-12" data-wg-wrap data-repair-only style="display:none">
           <div class="sp-grid">
             <div class="sp-field col-3">
               <label class="sp-label"># Walk Gates to Realign</label>
@@ -554,7 +528,10 @@ document.addEventListener('DOMContentLoaded', function(){
           <div class="sp-grid">
             <div class="sp-field col-3">
               <label class="sp-label">Gate Type</label>
-              <select class="sp-select" data-field="walkAddMethod">${createSelect(WALK_GATE_OPTIONS)}</select>
+              <select class="sp-select" data-field="walkAddType">
+                <option value="Single Swing Walk Gate">Single Swing Walk Gate</option>
+                <option value="Double Swing Gate">Double Swing Gate</option>
+              </select>
             </div>
             <div class="sp-field col-3">
               <label class="sp-label">Gate Post Size</label>
@@ -577,7 +554,7 @@ document.addEventListener('DOMContentLoaded', function(){
               <select class="sp-select" data-field="walkAddHinges">${createSelect(GATE.hingeTypes)}</select>
             </div>
           </div>
-          <div class="sp-hint">Single swing: adds 2 labor hours per gate and 2× 12ft rails for each rail size in this section. Double swing: adds 3 labor hours per gate and 4× 12ft rails per rail size. When replacing or installing a new section, add 1 post and 1 Maximizer bag of concrete for each new gate.</div>
+          <div class="sp-hint">Single swing: adds 2 labor hours, 1 post, 1 bag concrete, and 2× 12ft rails per rail size. Double swing: adds 3 labor hours, 1 post, 1 bag concrete, and 4× 12ft rails per rail size.</div>
         </div>
 
         <!-- Notes (section-specific) - LAST -->
@@ -594,7 +571,6 @@ document.addEventListener('DOMContentLoaded', function(){
     const id = uid();
     state.sections.push({
       id,
-      scopeType: 'repair',
       collapsed:false,
       railsCount:2,
       rails:[
@@ -617,12 +593,17 @@ document.addEventListener('DOMContentLoaded', function(){
 
       // NEW: Add Walk Gate fields
       walkGatesAdd: 0,
-      walkAddMethod: 'Single Swing Walk Gate',
+      walkAddType: 'Single Swing Walk Gate',
       walkAddPostSize: '2x2',
       walkAddFrameSize: SEED.railSize[0],
       walkAddPicketSize: SEED.picketSize[0],
       walkAddLatch: (GATE.latchTypes && GATE.latchTypes[0]) || 'Gravity Latch',
       walkAddHinges: (GATE.hingeTypes && GATE.hingeTypes[0]) || 'Door Hinges',
+
+      scopeType: 'repair',
+      postSpacing: '8',
+      panelAttachment: 'Welding',
+      installFinialStyle: SEED.finialStyles[0],
 
       // NEW: Finials
       finials: [],
@@ -746,10 +727,13 @@ document.addEventListener('DOMContentLoaded', function(){
     return {
       id,
       label: val('label').trim(),
-      scopeType: normalizeScopeType(val('scopeType') || 'repair'),
+      scopeType: val('scopeType') || 'repair',
       style: val('style'),
       height: val('height'),
       postSize: val('postSize'),
+      postSpacing: val('postSpacing'),
+      panelAttachment: val('panelAttachment'),
+      installFinialStyle: val('installFinialStyle'),
       postReplacements,
       postRealignments,
 
@@ -782,7 +766,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
       // NEW
       walkGatesAdd: val('walkGatesAdd'),
-      walkAddMethod: val('walkAddMethod'),
+      walkAddType: val('walkAddType'),
       walkAddPostSize: val('walkAddPostSize'),
       walkAddFrameSize: val('walkAddFrameSize'),
       walkAddPicketSize: val('walkAddPicketSize'),
@@ -826,10 +810,13 @@ document.addEventListener('DOMContentLoaded', function(){
       }
     }
     set('label', data.label||'');
-    set('scopeType', normalizeScopeType(data.scopeType));
+    set('scopeType', data.scopeType||'repair');
     set('style', data.style||SEED.style[0]);
     set('height', data.height||'4ft');
     set('postSize', data.postSize||'2x2');
+    set('postSpacing', data.postSpacing||'8');
+    set('panelAttachment', data.panelAttachment||'Welding');
+    set('installFinialStyle', data.installFinialStyle||SEED.finialStyles[0]);
 
     set('railsCount', data.railsCount || 2);
     renderRailsControls(card, data);
@@ -855,8 +842,7 @@ document.addEventListener('DOMContentLoaded', function(){
     set('walkRebuildHinges', data.walkRebuildHinges || (GATE.hingeTypes && GATE.hingeTypes[0]) || 'Door Hinges');
 
     set('walkGatesAdd', data.walkGatesAdd||'');
-    const gateVal = WALK_GATE_OPTIONS.some(opt=>opt.value === data.walkAddMethod) ? data.walkAddMethod : 'Single Swing Walk Gate';
-    set('walkAddMethod', gateVal);
+    set('walkAddType', data.walkAddType || 'Single Swing Walk Gate');
     set('walkAddPostSize', data.walkAddPostSize || data.postSize || '2x2');
     set('walkAddFrameSize', data.walkAddFrameSize || SEED.railSize[0]);
     set('walkAddPicketSize', data.walkAddPicketSize || SEED.picketSize[0]);
@@ -1164,6 +1150,22 @@ document.addEventListener('DOMContentLoaded', function(){
     return ['Top Rail','Bottom Rail'];
   }
 
+  function sectionRailSizes(section){
+    const sizes = new Set();
+    const rails = Array.isArray(section?.rails) ? section.rails : [];
+    const count = section?.railsCount || rails.length;
+    for(let i=0;i<count;i++){
+      const r = rails[i] || {};
+      if(r.size) sizes.add(r.size);
+      if(r.stacked && r.size2) sizes.add(r.size2);
+    }
+    if(!sizes.size){
+      if(section?.railSize) sizes.add(section.railSize);
+      if(section?.railStacked && section?.railSize2) sizes.add(section.railSize2);
+    }
+    return Array.from(sizes).filter(Boolean);
+  }
+
   function renderRailsControls(card, data){
     const row  = card.querySelector('[data-rails-row]');
     if(!row) return;
@@ -1191,11 +1193,11 @@ document.addEventListener('DOMContentLoaded', function(){
           <label class="sp-label">Second ${label} Size</label>
           <select class="sp-select" data-field="railSize2_${i}">${createSelect(SEED.railSize)}</select>
         </div>
-        <div class="sp-field" style="margin-top:6px">
+        <div class="sp-field" data-rail-repair style="margin-top:6px">
           <label class="sp-label"># Rail Patches (${label})</label>
           ${patchesHtml}
         </div>
-        <div class="sp-field" style="margin-top:6px">
+        <div class="sp-field" data-rail-repair style="margin-top:6px">
           <label class="sp-label"># Full Rail Replacements (${label})</label>
           ${replHtml}
         </div>
@@ -1475,11 +1477,8 @@ document.addEventListener('DOMContentLoaded', function(){
         const cond = card.querySelector(`[data-if="${key}"]`);
         if(cond) cond.style.display = t.checked ? 'block' : 'none';
       }
-      if(t.matches('[data-field="scopeType"]')){
-        updateScopeConditional(card);
-      } else {
-        updateWalkGateConditional(card);
-      }
+      updateWalkGateConditional(card);
+      updateInstallConditional(card);
       persist();
     });
   }
@@ -1495,6 +1494,7 @@ document.addEventListener('DOMContentLoaded', function(){
           const next = Math.max(min, current + dir);
           input.value = next;
           updateWalkGateConditional(card);
+          updateInstallConditional(card);
           persist();
         });
       });
@@ -1503,25 +1503,46 @@ document.addEventListener('DOMContentLoaded', function(){
         const min = parseInt(input.getAttribute('min')||'0',10)||0;
         input.value = Math.max(min, val);
         updateWalkGateConditional(card);
+        updateInstallConditional(card);
         persist();
       });
     });
   }
 
-  function updateScopeConditional(card){
-    if(!card) return;
+  function allowInstallFinials(style, puppy){
+    return /finials/i.test(String(style||'')) || /finials/i.test(String(puppy||''));
+  }
+
+  function updateInstallConditional(card){
     const scopeSel = card.querySelector('[data-field="scopeType"]');
-    const scope = normalizeScopeType(scopeSel ? scopeSel.value : 'repair');
-    card.setAttribute('data-scope-mode', scope);
-    const repairOnly = card.querySelectorAll('[data-scope-repair-only]');
-    repairOnly.forEach(el=>{
-      if(scope === 'repair'){
-        el.style.display = '';
-      } else {
-        el.style.display = 'none';
+    const scope = scopeSel ? scopeSel.value : 'repair';
+    const isInstall = scope === 'install' || scope === 'replace';
+    card.querySelectorAll('[data-install-only]').forEach(el=>{
+      el.style.display = isInstall ? '' : 'none';
+    });
+    card.querySelectorAll('[data-repair-only]').forEach(el=>{
+      el.style.display = isInstall ? 'none' : '';
+    });
+
+    const styleVal = (card.querySelector('[data-field="style"]') || {}).value || '';
+    const puppyVal = (card.querySelector('[data-field="puppy"]') || {}).value || '';
+    const finialsWrap = card.querySelector('[data-install-finials]');
+    if(finialsWrap){
+      const showFinials = isInstall && allowInstallFinials(styleVal, puppyVal);
+      finialsWrap.style.display = showFinials ? '' : 'none';
+      const finSel = card.querySelector('[data-field="installFinialStyle"]');
+      if(finSel && showFinials && !finSel.value){
+        finSel.value = SEED.finialStyles[0];
+      }
+    }
+
+    card.querySelectorAll('[data-rail-repair]').forEach(el=>{
+      el.style.display = isInstall ? 'none' : '';
+      if(isInstall){
+        const input = el.querySelector('input');
+        if(input){ input.value = '0'; }
       }
     });
-    updateWalkGateConditional(card);
   }
 
   function updateWalkGateConditional(card){
@@ -1533,23 +1554,19 @@ document.addEventListener('DOMContentLoaded', function(){
     const hw = getN('walkGatesHardware');
     const rb = getN('walkGatesRebuild');
     const add = getN('walkGatesAdd');
-
-    const scope = card.getAttribute('data-scope-mode') || 'repair';
-    const allowExistingGateOps = scope === 'repair';
+    const scopeSel = card.querySelector('[data-field="scopeType"]');
+    const scope = scopeSel ? scopeSel.value : 'repair';
+    const isInstall = scope === 'install' || scope === 'replace';
 
     const wrap = card.querySelector('[data-wg-wrap]');
-    if(wrap){ wrap.style.display = (allowExistingGateOps && wg>0) ? 'block' : 'none'; }
+    if(wrap){ wrap.style.display = (!isInstall && wg>0) ? 'block' : 'none'; }
     const hwWrap = card.querySelector('[data-wg-hw-wrap]');
-    if(hwWrap){ hwWrap.style.display = (allowExistingGateOps && wg>0 && hw>0) ? 'block' : 'none'; }
+    if(hwWrap){ hwWrap.style.display = (!isInstall && wg>0 && hw>0) ? 'block' : 'none'; }
     const rbWrap = card.querySelector('[data-wg-rebuild-wrap]');
-    if(rbWrap){ rbWrap.style.display = (allowExistingGateOps && wg>0 && rb>0) ? 'block' : 'none'; }
+    if(rbWrap){ rbWrap.style.display = (!isInstall && wg>0 && rb>0) ? 'block' : 'none'; }
 
     const addWrap = card.querySelector('[data-wg-add-wrap]');
     if(addWrap){ addWrap.style.display = add>0 ? 'block' : 'none'; }
-    const pickWrap  = card.querySelector('[data-wg-add-pickets]');
-    if(pickWrap){
-      pickWrap.style.display = add>0 ? 'block' : 'none';
-    }
   }
 
   function render(){
@@ -1563,7 +1580,8 @@ document.addEventListener('DOMContentLoaded', function(){
       writeSectionToDOM(card, s);
       attachNumberHandlers(card);
       attachRailsHandlers(card);
-      updateScopeConditional(card);
+      updateWalkGateConditional(card);
+      updateInstallConditional(card);
 
       const titleEl = $('.sp-card-title', card);
       const labelInput = card.querySelector('[data-field="label"]');
@@ -1574,7 +1592,34 @@ document.addEventListener('DOMContentLoaded', function(){
       refreshTitle();
       labelInput.addEventListener('input', refreshTitle);
 
-      $('.sp-del', card).addEventListener('click', ()=>{ removeSection(s.id); persist(); });
+      const deleteBtn = $('.sp-del', card);
+      if(deleteBtn){
+        let confirmTimer = null;
+        const resetConfirm = ()=>{
+          deleteBtn.dataset.confirm = '';
+          deleteBtn.textContent = 'Remove';
+          deleteBtn.classList.remove('is-confirm');
+          if(confirmTimer){
+            clearTimeout(confirmTimer);
+            confirmTimer = null;
+          }
+        };
+        deleteBtn.addEventListener('click', ()=>{
+          if(deleteBtn.dataset.confirm === 'true'){
+            resetConfirm();
+            removeSection(s.id);
+            persist();
+            return;
+          }
+          deleteBtn.dataset.confirm = 'true';
+          deleteBtn.textContent = 'Confirm Remove';
+          deleteBtn.classList.add('is-confirm');
+          if(confirmTimer){
+            clearTimeout(confirmTimer);
+          }
+          confirmTimer = setTimeout(()=>{ resetConfirm(); }, 4000);
+        });
+      }
       $('.sp-dup', card).addEventListener('click', ()=>{ duplicateSection(s.id); persist(); });
 
       const toggleBtn = $('.sp-toggle', card);
@@ -1593,11 +1638,8 @@ document.addEventListener('DOMContentLoaded', function(){
       $$('input, select, textarea', card).forEach(el=>{
         el.addEventListener('input', ()=>{ persist(); });
         el.addEventListener('change', ()=>{
-          if(el.matches('[data-field="scopeType"]')){
-            updateScopeConditional(card);
-          } else {
-            updateWalkGateConditional(card);
-          }
+          updateWalkGateConditional(card);
+          updateInstallConditional(card);
           persist();
         });
       });
@@ -1623,17 +1665,29 @@ document.addEventListener('DOMContentLoaded', function(){
     if(v === 'Puppy Pickets w/ Finials') return 0.5;
     return 0;
   }
+  function normalizeLabelText(text){
+    return String(text||'')
+      .replace(/\u201D|”/g,'"')
+      .replace(/\u201C|“/g,'"')
+      .replace(/\u2019|’/g,"'")
+      .replace(/\u2018|‘/g,"'")
+      .replace(/×/g,'x')
+      .trim();
+  }
   function addMat(map, label, qty){
     if(!qty || qty <= 0) return;
-    map[label] = (map[label]||0) + qty;
+    const cleanLabel = normalizeLabelText(label);
+    map[cleanLabel] = (map[cleanLabel]||0) + qty;
   }
 
   function normalizeSize(txt){
     return String(txt||'')
-      .replace(/\\u201D|”/g,'\"')
+      .replace(/\\u201D|”/g,'"')
+      .replace(/\\u201C|“/g,'"')
       .replace(/\\u00BC|¼/g,'1/4')
       .replace(/\\u00BD|½/g,'1/2')
       .replace(/\\u00BE|¾/g,'3/4')
+      .replace(/×/g,'x')
       .trim();
   }
 
@@ -1722,6 +1776,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function generateNotes(){
     syncStateFromDOM();
+    state.sections.forEach(s=>{ delete s._panelCalc; delete s._installCalc; });
 
     // --- PANEL REPLACEMENT helpers ---
     const PANEL_PRICE = {
@@ -1762,10 +1817,63 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 
     const lines = [];
-    const serviceLines = [];
+    const SERVICE_BUCKET_LABELS = {
+      installation: 'Wrought Iron Installation',
+      replacement: 'Wrought Iron Replacement',
+      repairs: 'Wrought Iron Repairs',
+      painting: 'Wrought Iron Painting'
+    };
+    const serviceBuckets = Object.keys(SERVICE_BUCKET_LABELS).reduce((acc, key)=>{
+      acc[key] = [];
+      return acc;
+    }, {});
+    const SERVICE_NAME_TO_BUCKET = {
+      'Wrought Iron Fence Installation': 'installation',
+      'Install New Fence Sections': 'installation',
+      'Add Single Walk Gate': 'installation',
+      'Add Double Walk Gate': 'installation',
+      'Wrought Iron Fence Replacement': 'replacement',
+      'Remove Fence Sections': 'replacement',
+      'Surface Preparation & Painting': 'painting',
+      'Dig Out Encroaching Soil': 'repairs',
+      'Replace Damaged Pickets': 'repairs',
+      'Rail Patch Repairs': 'repairs',
+      'Full Rail Replacement': 'repairs',
+      'Replace Fence Posts': 'repairs',
+      'Realign Leaning Posts': 'repairs',
+      'Finial Replacement': 'repairs',
+      'Post Cap Replacement': 'repairs',
+      'Install Prefab Panels': 'repairs',
+      'Build Custom Panels': 'repairs',
+      'Realign Walk Gates': 'repairs',
+      'Replace Walk Gate Hardware': 'repairs',
+      'Rebuild Walk Gates': 'repairs'
+    };
+    function ensureSentence(text){
+      const trimmed = (text || '').trim();
+      if(!trimmed) return '';
+      return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+    }
     function addServiceLine(name, desc){
       if(!name || !desc) return;
-      serviceLines.push({ name: name.trim(), desc: desc.trim() });
+      const normalizedName = name.trim();
+      const bucket = SERVICE_NAME_TO_BUCKET[normalizedName]
+        || (normalizedName.includes('Paint') ? 'painting' : 'repairs');
+      const sentence = ensureSentence(desc);
+      if(!sentence) return;
+      if(!serviceBuckets[bucket]){
+        serviceBuckets[bucket] = [];
+      }
+      serviceBuckets[bucket].push(sentence);
+    }
+    function buildServiceLineOutput(){
+      return Object.entries(SERVICE_BUCKET_LABELS)
+        .map(([key, label])=>{
+          const parts = serviceBuckets[key] || [];
+          if(!parts.length) return null;
+          return { name: label, desc: parts.join(' ') };
+        })
+        .filter(Boolean);
     }
     function describeCount(count, singular, plural){
       const n = parseInt(count,10) || 0;
@@ -1780,15 +1888,191 @@ document.addEventListener('DOMContentLoaded', function(){
       if(clean.length === 2) return `${clean[0]} and ${clean[1]}`;
       return `${clean.slice(0,-1).join(', ')}, and ${clean[clean.length-1]}`;
     }
+    function formatFtValue(value){
+      const n = parseFloat(value);
+      if(!isFinite(n) || n <= 0) return '';
+      return n
+        .toFixed(2)
+        .replace(/(\.\d*?)0+$/,'$1')
+        .replace(/\.$/,'');
+    }
+    function buildInstallServiceDescription(sections, includeRemoval){
+      if(!Array.isArray(sections) || !sections.length) return '';
+      let totalLength = 0;
+      const heights = new Set();
+      const styles = new Set();
+      const rails = new Set();
+      const railSizes = new Set();
+      const spacing = new Set();
+      const postSizes = new Set();
+      const styleGroups = new Map();
+
+      sections.forEach(section=>{
+        const len = parseInt(section.length,10) || 0;
+        totalLength += len;
+        if(section.height){ heights.add(String(section.height).trim()); }
+        if(section.style){ styles.add(String(section.style).trim()); }
+        const groupKey = (()=>{
+          const height = section.height ? String(section.height).trim() : '';
+          const style = section.style ? String(section.style).trim() : '';
+          return JSON.stringify({ height, style });
+        })();
+        if(!styleGroups.has(groupKey)){
+          styleGroups.set(groupKey, {
+            length: 0,
+            height: section.height ? String(section.height).trim() : '',
+            style: section.style ? String(section.style).trim() : '',
+            postSizes: new Set(),
+            picketSizes: new Set(),
+            railSizes: new Set()
+          });
+        }
+        const group = styleGroups.get(groupKey);
+        if(len > 0){
+          group.length += len;
+        }
+        const rCount = parseInt(section.railsCount,10) || (Array.isArray(section.rails) ? section.rails.length : 0);
+        if(rCount > 0){ rails.add(`${rCount} rail${rCount === 1 ? '' : 's'}`); }
+        if(Array.isArray(section.rails) && section.rails.length){
+          section.rails.forEach(r=>{
+            if(r && r.size){
+              const normalized = normalizeSize(r.size);
+              railSizes.add(normalized);
+              group.railSizes.add(normalized);
+            }
+            if(r && r.stacked && r.size2){
+              const normalized = normalizeSize(r.size2);
+              railSizes.add(normalized);
+              group.railSizes.add(normalized);
+            }
+          });
+        } else if(section.railSize){
+          const normalized = normalizeSize(section.railSize);
+          railSizes.add(normalized);
+          group.railSizes.add(normalized);
+          if(section.railStacked && section.railSize2){
+            const normalizedStack = normalizeSize(section.railSize2);
+            railSizes.add(normalizedStack);
+            group.railSizes.add(normalizedStack);
+          }
+        }
+        if(section.postSize){
+          const normalized = normalizeSize(section.postSize);
+          postSizes.add(normalized);
+          group.postSizes.add(normalized);
+        }
+        if(section.picketSize){
+          group.picketSizes.add(normalizeSize(section.picketSize));
+        }
+        const spacingCandidate = (section._installCalc && section._installCalc.spacingFt) || parseFloat(section.postSpacing||'');
+        const spacingStr = formatFtValue(spacingCandidate);
+        if(spacingStr){ spacing.add(spacingStr); }
+      });
+
+      const descriptorParts = [];
+      if(heights.size){
+        const heightLabel = joinParts(Array.from(heights).map(h=> `${h} tall`));
+        descriptorParts.push(heightLabel);
+      }
+      const styleLabel = styles.size ? `${joinParts(Array.from(styles))} fence` : 'wrought iron fence';
+      descriptorParts.push(styleLabel);
+      const descriptor = descriptorParts.filter(Boolean).join(' ').trim();
+
+      const withParts = [];
+      if(rails.size){ withParts.push(joinParts(Array.from(rails))); }
+      const withText = withParts.length ? ` with ${joinParts(withParts)}` : '';
+      const actionPrefix = includeRemoval ? 'Remove existing fence and install' : 'Install';
+      const breakdownParts = Array.from(styleGroups.values())
+        .filter(item=>item.length > 0)
+        .map(item=>{
+          const heightLabel = item.height ? `${item.height} tall` : '';
+          const styleLabel = item.style || 'wrought iron';
+          const phraseParts = [heightLabel, `${styleLabel}${/fence/i.test(styleLabel)?'':' fence'}`].filter(Boolean);
+          const postDetail = item.postSizes.size ? `posts: ${joinParts(Array.from(item.postSizes))}` : '';
+          const picketDetail = item.picketSizes.size ? `pickets: ${joinParts(Array.from(item.picketSizes))}` : '';
+          const railDetail = item.railSizes.size ? `rails: ${joinParts(Array.from(item.railSizes).map(v=> `${v} stock`))}` : '';
+          const detailParts = [postDetail, picketDetail, railDetail].filter(Boolean);
+          const detailText = detailParts.length ? ` (${detailParts.join('; ')})` : '';
+          return `${item.length}ft of ${phraseParts.join(' ')}${detailText}`;
+        });
+      let firstSentence = '';
+      if(breakdownParts.length){
+        firstSentence = `${actionPrefix} ${joinParts(breakdownParts)}${withText}.`;
+      } else {
+        const lengthText = totalLength > 0 ? `${totalLength}ft` : '';
+        firstSentence = lengthText
+          ? `${actionPrefix} ${lengthText} of ${descriptor}${withText}.`
+          : `${actionPrefix} ${descriptor}${withText}.`;
+      }
+
+      const spacingValues = Array.from(spacing).sort((a,b)=> parseFloat(a) - parseFloat(b));
+      const railSizeValues = Array.from(railSizes).filter(Boolean);
+      const postSizeValues = Array.from(postSizes).filter(Boolean);
+      let postsSentence = '';
+      const postSizeLabel = postSizeValues.length ? ` (${joinParts(postSizeValues)})` : '';
+      if(spacingValues.length){
+        if(spacingValues.length === 1){
+          postsSentence = `Posts${postSizeLabel} will be spaced ${spacingValues[0]}ft apart and set in concrete 36\" deep.`;
+        } else {
+          const spacingLabels = spacingValues.map(v=> `${v}ft`);
+          postsSentence = `Posts${postSizeLabel} will be spaced between ${joinParts(spacingLabels)} apart and set in concrete 36\" deep.`;
+        }
+      } else {
+        postsSentence = `Posts${postSizeLabel} will be set in concrete 36\" deep.`;
+      }
+
+      let railSentence = '';
+      if(railSizeValues.length){
+        railSentence = `Rails will use ${joinParts(railSizeValues)} stock.`;
+      }
+
+      return [firstSentence, postsSentence, railSentence].filter(Boolean).join(' ');
+    }
+    const zeroPostCounts = ()=>({ posts1p5:0, posts2x2:0, posts3x3:0, posts4x4:0 });
     const totals = {
       length:0, hardscape:0, trim:0, digOut:0, finials:0, caps:0,
       wiPickets:0, wiPatches:0, wiRails:0,
+      wiPicketSizes: new Set(),
+      wiPatchSizes: new Set(),
+      wiRailReplaceSizes: new Set(),
       posts2x2:0, posts3x3:0, posts1p5:0, posts4x4:0, postsRealign2x2:0, postsRealign3x3:0,
       walkGates:0, walkRealign:0, walkHardware:0, walkRebuild:0,
-      walkGateAdds:0, walkGateAddsSingle:0, walkGateAddsDouble:0,
-      panelsPrefab:0, panelsCustom:0
+      walkGateAdds:0,
+      walkGateAddsSingle:0,
+      walkGateAddsDouble:0,
+      walkGateAddsRepair:0,
+      walkGateAddsInstall:0,
+      panelsPrefab:0, panelsCustom:0,
+      panelsInstallPrefab:0, panelsInstallCustom:0,
+      installSections:0, replaceSections:0,
+      removalLf:0, removalCost:0,
+      postsInstall: zeroPostCounts(),
+      postsReplace: zeroPostCounts()
     };
     const materials = {};
+    const picketStickTotals = {};
+    const railStickTotals = {};
+    const steelStickTotals = { raw1p5:0, raw3x3:0, raw4x4:0 };
+
+    const addPicketSticks = (size, qty) => {
+      if(!qty || qty <= 0) return;
+      const normalized = normalizeSize(size);
+      const labelSize = normalized || normalizeLabelText(size);
+      addMat(materials, `12ft picket sticks (${labelSize})`, qty);
+      if(normalized){
+        picketStickTotals[normalized] = (picketStickTotals[normalized]||0) + qty;
+      }
+    };
+
+    const addRailSticks = (size, qty) => {
+      if(!qty || qty <= 0) return;
+      const normalized = normalizeSize(size);
+      const labelSize = normalized || normalizeLabelText(size);
+      addMat(materials, `12ft rail sticks (${labelSize})`, qty);
+      if(normalized){
+        railStickTotals[normalized] = (railStickTotals[normalized]||0) + qty;
+      }
+    };
     let manHours = 0;
     let welderHours = 0;
     let helperHours = 0;
@@ -1808,51 +2092,151 @@ document.addEventListener('DOMContentLoaded', function(){
           })()
         : (s.railStacked ? `${s.railSize} + ${s.railSize2} (stacked)` : `${s.railSize}`);
 
-      const sectionPatchTotal = (s.rails||[]).slice(0, s.railsCount||0)
-        .reduce((acc,r)=> acc + (parseInt(r?.patches||0,10)||0), 0);
-      const sectionReplTotal = (s.rails||[]).slice(0, s.railsCount||0)
-        .reduce((acc,r)=> acc + (parseInt(r?.replacements||0,10)||0), 0);
+      const scopeType = (s.scopeType || 'repair');
+      const isInstall = scopeType === 'install' || scopeType === 'replace';
+      const isRepair = !isInstall;
+      if(scopeType === 'install'){ totals.installSections += 1; }
+      if(scopeType === 'replace'){ totals.replaceSections += 1; }
+
+      let installInfo = null;
+      if(isInstall){
+        const lengthFt = parseInt(s.length||0,10) || 0;
+        const spacingRaw = parseFloat(s.postSpacing||'8');
+        const spacingFt = (isFinite(spacingRaw) && spacingRaw > 0) ? spacingRaw : 8;
+        let spanCount = 0;
+        if(lengthFt > 0){ spanCount = Math.max(1, Math.ceil(lengthFt / spacingFt)); }
+        const postsTotal = spanCount > 0 ? spanCount + 1 : (lengthFt > 0 ? 2 : 0);
+        const installCounts = zeroPostCounts();
+        const pKey = postSizeKey(s.postSize);
+        if(pKey){ installCounts[pKey] = postsTotal; }
+        addPostCounts(totals.postsInstall, installCounts);
+        addPostCounts(totals, installCounts);
+
+        const panelWidths = [];
+        if(spanCount > 0){
+          const standardWidthIn = Math.max(12, Math.round(spacingFt * 12));
+          for(let iPanel=0; iPanel<spanCount; iPanel++){
+            if(iPanel === spanCount - 1){
+              const consumed = spacingFt * (spanCount - 1);
+              const remainingFt = lengthFt - consumed;
+              const widthIn = Math.max(12, Math.round((remainingFt>0 ? remainingFt : spacingFt) * 12));
+              panelWidths.push(widthIn);
+            } else {
+              panelWidths.push(standardWidthIn);
+            }
+          }
+        }
+
+        const finialStyle = allowInstallFinials(s.style, s.puppy)
+          ? (s.installFinialStyle || SEED.finialStyles[0])
+          : '';
+
+        const gateAddsForInstall = parseInt(s.walkGatesAdd||0,10) || 0;
+        const gatePostKey = postSizeKey(s.walkAddPostSize || s.postSize);
+        if(gateAddsForInstall>0 && gatePostKey){
+          installCounts[gatePostKey] = (installCounts[gatePostKey]||0) + gateAddsForInstall;
+        }
+
+        installInfo = {
+          lengthFt,
+          spacingFt,
+          spanCount,
+          postsTotal,
+          postCounts: installCounts,
+          panelWidths,
+          attachment: s.panelAttachment || 'Welding',
+          finialStyle,
+          removalCost: 0
+        };
+
+        if(gateAddsForInstall>0){
+          installInfo.postsTotal += gateAddsForInstall;
+        }
+
+        if(scopeType === 'replace' && lengthFt > 0){
+          const removalCost = lengthFt * 3.9;
+          installInfo.removalCost = removalCost;
+          totals.removalLf += lengthFt;
+          totals.removalCost += removalCost;
+        }
+      }
+
+      let sectionPatchTotal = 0;
+      let sectionReplTotal = 0;
+      const sectionPatchSizes = new Set();
+      const sectionReplSizes = new Set();
+      if(isRepair){
+        const railsArr = (s.rails||[]).slice(0, s.railsCount||0);
+        railsArr.forEach(r=>{
+          const patchCount = parseInt(r?.patches||0,10) || 0;
+          const replCount = parseInt(r?.replacements||0,10) || 0;
+          const primarySize = normalizeSize(r?.size);
+          const secondarySize = r?.stacked ? normalizeSize(r?.size2) : '';
+          if(patchCount){
+            sectionPatchTotal += patchCount;
+            if(primarySize) sectionPatchSizes.add(primarySize);
+            if(secondarySize) sectionPatchSizes.add(secondarySize);
+          }
+          if(replCount){
+            sectionReplTotal += replCount;
+            if(primarySize) sectionReplSizes.add(primarySize);
+            if(secondarySize) sectionReplSizes.add(secondarySize);
+          }
+        });
+      }
 
       lines.push(`${title}`);
+      const scopeLabel = scopeType === 'install'
+        ? 'Install new section'
+        : scopeType === 'replace'
+          ? 'Remove & replace section'
+          : 'Repair existing section';
+      lines.push(`- Scope: ${scopeLabel}`);
       lines.push(`- Style: ${s.style}`);
       lines.push(`- Height: ${s.height}`);
       lines.push(`- Rails: ${railsDesc}`);
       lines.push(`- Picket: ${picket}`);
       lines.push(`- Puppy Pickets: ${s.puppy}`);
       lines.push(`- Painting: ${s.painting || 'Paint Section'}`);
-      const scopeMode = normalizeScopeType(s.scopeType);
-      const isRepairSection = scopeMode === 'repair';
-      lines.push(`- Section Type: ${scopeTypeLabel(s.scopeType)}`);
+
+      if(isInstall && installInfo){
+        lines.push(`- Post spacing: ${installInfo.spacingFt} ft`);
+        lines.push(`- Panel attachment: ${installInfo.attachment}`);
+        lines.push(`- Posts to set: ${installInfo.postsTotal} (${s.postSize})`);
+        if(installInfo.finialStyle){
+          lines.push(`- Finials: ${installInfo.finialStyle}`);
+        }
+        if(scopeType === 'replace' && installInfo.lengthFt > 0){
+          lines.push(`- Remove existing section (${installInfo.lengthFt} lf) and haul away (sub paid $${money(installInfo.removalCost)})`);
+        }
+      }
 
       lines.push(`- Length: ${numOrDash(s.length)} ft`);
       if (s.hardscape > 0) lines.push(`- Over hardscape: ${s.hardscape} lf`);
       if (s.trim > 0)      lines.push(`- Trim: ${s.trim} lf`);
-      if (isRepairSection && s.digOut > 0)    lines.push(`- Dig out: ${s.digOut} lf`);
+      if (!isInstall && s.digOut > 0)    lines.push(`- Dig out: ${s.digOut} lf`);
 
       const i = (v)=> (parseInt(v||0,10) || 0);
-      let replaceCounts = { posts2x2:0, posts3x3:0, posts1p5:0, posts4x4:0 };
-      let realignCounts = { posts2x2:0, posts3x3:0 };
-      if(isRepairSection){
+      const picketReplaceCount = isRepair ? i(s.wiPickets) : 0;
+      const replaceCounts = isRepair ? countPostGroups(s.postReplacements) : zeroPostCounts();
+      const realignCounts = isRepair ? countPostGroups(s.postRealignments) : zeroPostCounts();
+      if(isRepair){
         lines.push(`- Repairs:`);
-        lines.push(`  - Pickets to replace: ${i(s.wiPickets)}`);
+        lines.push(`  - Pickets to replace: ${picketReplaceCount}`);
         lines.push(`  - Rail patches: ${sectionPatchTotal}`);
         lines.push(`  - Full rail replacements: ${sectionReplTotal}`);
-        replaceCounts = countPostGroups(s.postReplacements);
-        realignCounts = countPostGroups(s.postRealignments);
         lines.push(`  - 2x2 posts to replace: ${replaceCounts.posts2x2}`);
         lines.push(`  - 3x3 posts to replace: ${replaceCounts.posts3x3}`);
         lines.push(`  - 1 1/2" x 1 1/2" posts to replace: ${replaceCounts.posts1p5}`);
         lines.push(`  - 4x4 posts to replace: ${replaceCounts.posts4x4}`);
         lines.push(`  - 2x2 posts to realign: ${realignCounts.posts2x2}`);
         lines.push(`  - 3x3 posts to realign: ${realignCounts.posts3x3}`);
-      } else {
-        lines.push(`- Repairs: not applicable for this section type`);
       }
 
       // NEW: Finials
-      const finArr = Array.isArray(s.finials) ? s.finials : [];
+      const finArr = isRepair && Array.isArray(s.finials) ? s.finials : [];
       const finCount = finArr.reduce((acc,f)=> acc + (parseInt(f?.qty||0,10) || 0), 0);
-      if(isRepairSection && finCount){
+      if(finCount){
         lines.push(`- Finial replacements: ${finCount}`);
         finArr.forEach(f=>{
           const q = parseInt(f?.qty||0,10) || 0; if(!q) return;
@@ -1860,40 +2244,104 @@ document.addEventListener('DOMContentLoaded', function(){
         });
       }
 
-      // PANEL REPLACEMENTS (per-row)
-      const panelArr = Array.isArray(s.panels) ? s.panels : [];
-      if(isRepairSection){
-        if(panelArr.length){ lines.push(`- Panel replacements:`); }
-        panelArr.forEach(p=>{
-          const q = parseInt(p?.qty||0,10)||0; if(!q) return;
-          const feet = feetFromHeightStr(p.height);
-          const eligible = isPrefabEligible(p.widthIn, p.railSize, p.picketSize);
-          const isFin = /Finials/i.test(p.style);
-          lines.push(`  - ${q} × ${p.widthIn||0}" wide panel — ${p.height}, ${p.style}, rails ${p.railSize}, pickets ${p.picketSize} ${eligible?'(prefab eligible)':'(build on site)'}`);
-          // Labor
-          const panelHours = eligible ? q * 0.5 : q * 1.5;
+      function processPanels(list, heading, source, extra={}){
+        if(!Array.isArray(list) || list.length === 0) return;
+        const prepared = [];
+        const defaultRail = (Array.isArray(s.rails) && s.rails[0] && s.rails[0].size) || s.railSize || SEED.railSize[0];
+        list.forEach(p=>{
+          if(!p) return;
+          const qty = parseInt(p.qty,10) || 0;
+          if(qty <= 0) return;
+          const widthRaw = parseInt(p.widthIn,10) || 0;
+          const widthIn = Math.max(12, widthRaw);
+          const railSize = p.railSize || defaultRail;
+          const picketSize = p.picketSize || s.picketSize || SEED.picketSize[0];
+          const height = p.height || s.height;
+          let style = p.style || s.style || '';
+          if(source === 'install' && extra.style){ style = extra.style; }
+          const finialStyle = p.finialStyle || extra.finialStyle || SEED.finialStyles[0];
+          prepared.push({ qty, widthIn, railSize, picketSize, height, style, finialStyle });
+        });
+        if(!prepared.length) return;
+        lines.push(heading);
+        prepared.forEach(entry=>{
+          const { qty, widthIn, railSize, picketSize, height, style, finialStyle } = entry;
+          const feet = feetFromHeightStr(height);
+          const eligible = isPrefabEligible(widthIn, railSize, picketSize);
+          const desc = `${height}, ${style}, rails ${railSize}, pickets ${picketSize} ${eligible?'(prefab eligible)':'(build on site)'}`;
+          lines.push(`  - ${qty} × ${widthIn}" wide panel — ${desc}`);
+          const panelHours = eligible ? qty * 0.5 : qty * 1.5;
           manHours += panelHours;
           welderHours += panelHours;
-          if(eligible){ totals.panelsPrefab += q; }
-          else        { totals.panelsCustom += q; }
-
-          // Materials / Costing accumulators handled after loop below
-          // Store a scratch list on section to pick up later
-          if(!s._panelCalc) s._panelCalc = []; s._panelCalc.push({
-            qty:q, feet, eligible, style:p.style, picketSize:p.picketSize, railSize:p.railSize, widthIn: parseInt(p.widthIn,10)||0, finialStyle: p.finialStyle
-          });
-
-          if(isFin && !eligible){
-            // custom build w/ finials -> add 26 per panel to materials
-            addMat(materials, `finials - Cast Iron - ${p.finialStyle} (${p.picketSize})`, q*26);
+          if(eligible){
+            totals.panelsPrefab += qty;
+            if(source === 'install') totals.panelsInstallPrefab += qty;
+          } else {
+            totals.panelsCustom += qty;
+            if(source === 'install') totals.panelsInstallCustom += qty;
           }
+          if(!s._panelCalc) s._panelCalc = [];
+          s._panelCalc.push({
+            qty,
+            feet,
+            eligible,
+            style,
+            picketSize,
+            railSize,
+            height,
+            widthIn,
+            finialStyle,
+            source
+          });
+          if(/Finials/i.test(style) && !eligible){
+            const finStyleLabel = finialStyle || SEED.finialStyles[0];
+            addMat(materials, `finials - Cast Iron - ${finStyleLabel} (${picketSize})`, qty*26);
+          }
+        });
+        if(source === 'install' && extra.installInfo){
+          if(!extra.installInfo.panels) extra.installInfo.panels = [];
+          prepared.forEach(entry=>{ extra.installInfo.panels.push({ ...entry }); });
+        }
+      }
+
+      // PANEL REPLACEMENTS (per-row)
+      const panelArr = isRepair && Array.isArray(s.panels) ? s.panels : [];
+      processPanels(panelArr, '- Panel replacements:', 'repair');
+
+      if(installInfo && installInfo.spanCount > 0){
+        const widthCounts = {};
+        installInfo.panelWidths.forEach(w=>{
+          widthCounts[w] = (widthCounts[w]||0) + 1;
+        });
+        const installStyle = (()=>{
+          let base = s.style || '';
+          const puppyVal = s.puppy || '';
+          if(/Finials/i.test(puppyVal) && !/Finials/i.test(base)){
+            base = base ? `${base} (${puppyVal})` : puppyVal;
+          }
+          return base || s.style || '';
+        })();
+        const installPanels = Object.entries(widthCounts).map(([width, qty])=>({
+          qty,
+          widthIn: parseInt(width,10) || 0,
+          height: s.height,
+          style: installStyle,
+          railSize: (Array.isArray(s.rails) && s.rails[0] && s.rails[0].size) || s.railSize || SEED.railSize[0],
+          picketSize: s.picketSize,
+          finialStyle: installInfo.finialStyle
+        }));
+        processPanels(installPanels, '- Panel installation:', 'install', {
+          attachment: installInfo.attachment,
+          finialStyle: installInfo.finialStyle,
+          style: installStyle,
+          installInfo
         });
       }
 
       // NEW: Caps
-      const capArr = Array.isArray(s.caps) ? s.caps : [];
+      const capArr = isRepair && Array.isArray(s.caps) ? s.caps : [];
       const capCount = capArr.reduce((acc,c)=> acc + (parseInt(c?.qty||0,10) || 0), 0);
-      if(isRepairSection && capCount){
+      if(capCount){
         lines.push(`- Post cap replacements: ${capCount}`);
         capArr.forEach(c=>{
           const q = parseInt(c?.qty||0,10) || 0; if(!q) return;
@@ -1901,12 +2349,16 @@ document.addEventListener('DOMContentLoaded', function(){
         });
       }
 
+      if(installInfo){
+        s._installCalc = installInfo;
+      }
+
       // Walk gate details
-      const wg  = i(s.walkGates);
-      const wgr = i(s.walkGatesRealign);
-      const wgh = i(s.walkGatesHardware);
-      const wgb = i(s.walkGatesRebuild);
-      if (isRepairSection && (wg || wgr || wgh || wgb)){
+      const wg  = isRepair ? i(s.walkGates) : 0;
+      const wgr = isRepair ? i(s.walkGatesRealign) : 0;
+      const wgh = isRepair ? i(s.walkGatesHardware) : 0;
+      const wgb = isRepair ? i(s.walkGatesRebuild) : 0;
+      if (isRepair && (wg || wgr || wgh || wgb)){
         lines.push(`- Walk gates: ${wg}`);
         if (wgr) lines.push(`  - Realign: ${wgr}`);
         if (wgh) lines.push(`  - Hardware replacements: ${wgh} (Latch: ${s.walkLatch||'-'}, Hinges: ${s.walkHinges||'-'})`);
@@ -1916,7 +2368,7 @@ document.addEventListener('DOMContentLoaded', function(){
       // Add walk gate into existing fence
       const wga = i(s.walkGatesAdd);
       if (wga){
-        const gateTypeLabel = walkGateTypeLabel(s.walkAddMethod);
+        const gateTypeLabel = s.walkAddType || 'Single Swing Walk Gate';
         lines.push(`- Add walk gate(s): ${wga} — ${gateTypeLabel}`);
         lines.push(`  - Post: ${s.walkAddPostSize}; Frame: ${s.walkAddFrameSize}; Pickets: ${s.walkAddPicketSize}; Latch: ${s.walkAddLatch}; Hinges: ${s.walkAddHinges}`);
       }
@@ -1927,24 +2379,43 @@ document.addEventListener('DOMContentLoaded', function(){
       totals.length       += i(s.length);
       totals.hardscape    += i(s.hardscape);
       totals.trim         += i(s.trim);
-      if(isRepairSection) totals.digOut       += i(s.digOut);
-      if(isRepairSection) totals.finials      += finCount;
-      if(isRepairSection) totals.wiPickets    += i(s.wiPickets);
-      if(isRepairSection) totals.wiPatches    += sectionPatchTotal;
-      if(isRepairSection) totals.wiRails      += sectionReplTotal;
-      if(isRepairSection) addPostCounts(totals, replaceCounts);
-      if(isRepairSection) totals.postsRealign2x2 += realignCounts.posts2x2;
-      if(isRepairSection) totals.postsRealign3x3 += realignCounts.posts3x3;
-      if(isRepairSection) totals.walkGates   += wg;
-      if(isRepairSection) totals.walkRealign += wgr;
-      if(isRepairSection) totals.walkHardware+= wgh;
-      if(isRepairSection) totals.walkRebuild += wgb;
-      if(isRepairSection) totals.caps        += capCount;
-      if(wga){
-        const gateType = normalizeWalkGateType(s.walkAddMethod);
-        totals.walkGateAdds += wga;
-        if(gateType === 'double'){ totals.walkGateAddsDouble = (totals.walkGateAddsDouble||0) + wga; }
-        else                     { totals.walkGateAddsSingle = (totals.walkGateAddsSingle||0) + wga; }
+      if(isRepair){
+        totals.digOut       += i(s.digOut);
+        totals.finials      += finCount;
+        totals.wiPickets    += picketReplaceCount;
+        if(picketReplaceCount > 0){
+          const picketSizeNormalized = normalizeSize(s.picketSize);
+          if(picketSizeNormalized) totals.wiPicketSizes.add(picketSizeNormalized);
+        }
+        totals.wiPatches    += sectionPatchTotal;
+        if(sectionPatchTotal > 0){
+          sectionPatchSizes.forEach(size=> totals.wiPatchSizes.add(size));
+        }
+        totals.wiRails      += sectionReplTotal;
+        if(sectionReplTotal > 0){
+          sectionReplSizes.forEach(size=> totals.wiRailReplaceSizes.add(size));
+        }
+        addPostCounts(totals.postsReplace, replaceCounts);
+        addPostCounts(totals, replaceCounts);
+        totals.postsRealign2x2 += realignCounts.posts2x2;
+        totals.postsRealign3x3 += realignCounts.posts3x3;
+        totals.walkGates   += wg;
+        totals.walkRealign += wgr;
+        totals.walkHardware+= wgh;
+        totals.walkRebuild += wgb;
+        totals.caps        += capCount;
+      }
+      totals.walkGateAdds += wga;
+      if(isInstall){
+        totals.walkGateAddsInstall += wga;
+      } else {
+        totals.walkGateAddsRepair += wga;
+      }
+      const gateTypeLabel = s.walkAddType || 'Single Swing Walk Gate';
+      if(gateTypeLabel === 'Double Swing Gate'){
+        totals.walkGateAddsDouble += wga;
+      } else {
+        totals.walkGateAddsSingle += wga;
       }
     });
 
@@ -1956,29 +2427,51 @@ document.addEventListener('DOMContentLoaded', function(){
       if (t.hardscape)     lines.push(`- Over hardscape: ${t.hardscape} lf`);
       if (t.trim)          lines.push(`- Trim: ${t.trim} lf`);
       if (t.digOut)        lines.push(`- Dig out: ${t.digOut} lf`);
-      if (t.finials)       lines.push(`- Finials to replace: ${t.finials}`);
-      if (t.caps)          lines.push(`- Post caps to replace: ${t.caps}`);
-      if (t.wiPickets)     lines.push(`- Pickets to replace: ${t.wiPickets}`);
-      if (t.wiPatches)     lines.push(`- Rail patches: ${t.wiPatches}`);
-      if (t.wiRails)       lines.push(`- Full rail replacements: ${t.wiRails}`);
-      if (t.posts2x2)      lines.push(`- 2x2 posts: ${t.posts2x2}`);
-      if (t.posts3x3)      lines.push(`- 3x3 posts: ${t.posts3x3}`);
-      if (t.posts1p5)      lines.push(`- 1 1/2" x 1 1/2" posts: ${t.posts1p5}`);
-      if (t.posts4x4)      lines.push(`- 4x4 posts: ${t.posts4x4}`);
+      if (t.replaceSections) lines.push(`- Sections to replace: ${t.replaceSections}`);
+      if (t.installSections) lines.push(`- New sections to install: ${t.installSections}`);
+      if (t.removalLf)      lines.push(`- Removal & haul away: ${t.removalLf} lf (sub paid $${money(t.removalCost)})`);
+      if (t.finials)        lines.push(`- Finials to replace: ${t.finials}`);
+      if (t.caps)           lines.push(`- Post caps to replace: ${t.caps}`);
+      if (t.wiPickets)      lines.push(`- Pickets to replace: ${t.wiPickets}`);
+      if (t.wiPatches)      lines.push(`- Rail patches: ${t.wiPatches}`);
+      if (t.wiRails)        lines.push(`- Full rail replacements: ${t.wiRails}`);
+      const postSummary = (label, counts)=>{
+        const parts = [];
+        if(counts.posts1p5) parts.push(`${counts.posts1p5} × 1 1/2" x 1 1/2"`);
+        if(counts.posts2x2) parts.push(`${counts.posts2x2} × 2x2`);
+        if(counts.posts3x3) parts.push(`${counts.posts3x3} × 3x3`);
+        if(counts.posts4x4) parts.push(`${counts.posts4x4} × 4x4`);
+        if(parts.length) lines.push(`- ${label}: ${parts.join(', ')}`);
+      };
+      postSummary('Posts to replace', t.postsReplace || zeroPostCounts());
+      postSummary('Posts to set (new sections)', t.postsInstall || zeroPostCounts());
       if (t.postsRealign2x2) lines.push(`- 2x2 posts to realign: ${t.postsRealign2x2}`);
       if (t.postsRealign3x3) lines.push(`- 3x3 posts to realign: ${t.postsRealign3x3}`);
       if (t.walkGates)     lines.push(`- Walk gates: ${t.walkGates}`);
       if (t.walkRealign)   lines.push(`- Walk gates to realign: ${t.walkRealign}`);
       if (t.walkHardware)  lines.push(`- Walk gate hardware replacements: ${t.walkHardware}`);
       if (t.walkRebuild)   lines.push(`- Walk gates to rebuild: ${t.walkRebuild}`);
-      if (t.walkGateAddsSingle || t.walkGateAddsDouble){
-        const parts = [];
-        if (t.walkGateAddsSingle) parts.push(describeCount(t.walkGateAddsSingle, 'single swing gate', 'single swing gates'));
-        if (t.walkGateAddsDouble) parts.push(describeCount(t.walkGateAddsDouble, 'double swing gate', 'double swing gates'));
-        lines.push(`- Walk gates to add: ${joinParts(parts)}`);
-      }
+      if (t.walkGateAdds)  lines.push(`- Walk gates to add: ${t.walkGateAdds}`);
+      if (t.walkGateAddsSingle) lines.push(`- Single swing walk gates to add: ${t.walkGateAddsSingle}`);
+      if (t.walkGateAddsDouble) lines.push(`- Double swing gates to add: ${t.walkGateAddsDouble}`);
       if (t.panelsPrefab) lines.push(`- Prefab panels to install: ${t.panelsPrefab}`);
       if (t.panelsCustom) lines.push(`- Panels to custom-build: ${t.panelsCustom}`);
+      if (t.panelsInstallPrefab) lines.push(`- New prefab panels: ${t.panelsInstallPrefab}`);
+      if (t.panelsInstallCustom) lines.push(`- New custom panels: ${t.panelsInstallCustom}`);
+    }
+
+
+    const installSectionsOnly = state.sections.filter(s=> (s?.scopeType || 'repair') === 'install');
+    const replacementSectionsOnly = state.sections.filter(s=> (s?.scopeType || 'repair') === 'replace');
+
+    if(replacementSectionsOnly.length){
+      const detail = buildInstallServiceDescription(replacementSectionsOnly, true);
+      addServiceLine('Wrought Iron Fence Replacement', detail || 'Remove existing fence and install new wrought iron fence. Posts will be set in concrete 36" deep.');
+    }
+
+    if(installSectionsOnly.length){
+      const detail = buildInstallServiceDescription(installSectionsOnly, false);
+      addServiceLine('Wrought Iron Fence Installation', detail || 'Install wrought iron fence. Posts will be set in concrete 36" deep.');
     }
 
     const paintingSummary = state.sections.reduce((acc, s)=>{
@@ -2004,7 +2497,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if (paintingSummary.full.len || paintingSummary.primePaint.len || paintingSummary.spot){
       const segments = [];
       if(paintingSummary.full.len){
-        let detail = `Prep and apply gloss black oil-based paint to approximately ${paintingSummary.full.len} linear feet of fence`;
+        let detail = `Scrape and brush off loose rust and debris, then apply gloss black oil-based paint to approximately ${paintingSummary.full.len} linear feet of fence`;
         const extras = [];
         if(paintingSummary.full.hardscape) extras.push(`${paintingSummary.full.hardscape} lf over hardscape`);
         if(paintingSummary.full.trim) extras.push(`${paintingSummary.full.trim} lf of trim detail`);
@@ -2029,21 +2522,53 @@ document.addEventListener('DOMContentLoaded', function(){
     if (totals.digOut > 0){
       addServiceLine('Dig Out Encroaching Soil', `Remove built-up soil along ${totals.digOut} linear feet to expose fence bottoms and prevent corrosion.`);
     }
-    if (totals.wiPickets > 0){
-      addServiceLine('Replace Damaged Pickets', `Cut out rusted members and weld in ${describeCount(totals.wiPickets, 'matching picket', 'matching pickets')} to match the existing pattern.`);
+    const picketCount = parseInt(totals.wiPickets, 10) || 0;
+    if (picketCount > 0){
+      const picketPlural = picketCount === 1 ? '' : 's';
+      const picketSizes = Array.from(totals.wiPicketSizes || []).filter(Boolean);
+      let picketDesc = '';
+      if(picketSizes.length === 1){
+        const size = picketSizes[0];
+        picketDesc = `Cut out ${picketCount}x rusted ${size} picket${picketPlural} and weld in ${picketCount}x new ${size} steel picket${picketPlural}.`;
+      } else {
+        const sizeSuffix = picketSizes.length > 1 ? ` (${joinParts(picketSizes)})` : '';
+        picketDesc = `Cut out ${picketCount}x rusted picket${picketPlural}${sizeSuffix} and weld in ${picketCount}x new steel picket${picketPlural}${sizeSuffix}.`;
+      }
+      addServiceLine('Replace Damaged Pickets', picketDesc);
     }
     if (totals.wiPatches > 0){
-      addServiceLine('Rail Patch Repairs', `Cut out rusted sections and weld in ${describeCount(totals.wiPatches, 'steel patch', 'steel patches')} on horizontal rails.`);
+      const rustedPortionText = totals.wiPatches === 1
+        ? '1x rusted portion'
+        : `${totals.wiPatches}x rusted portions`;
+      const patchSizes = Array.from(totals.wiPatchSizes || []).filter(Boolean);
+      let patchDesc = '';
+      if(patchSizes.length === 1){
+        patchDesc = `Cut out ${rustedPortionText} of ${patchSizes[0]} rail steel and weld in new steel.`;
+      } else {
+        const sizeSuffix = patchSizes.length > 1 ? ` (${joinParts(patchSizes)})` : '';
+        patchDesc = `Cut out ${rustedPortionText} of rail steel${sizeSuffix} and weld in new steel.`;
+      }
+      addServiceLine('Rail Patch Repairs', patchDesc);
     }
     if (totals.wiRails > 0){
-      addServiceLine('Full Rail Replacement', `Fabricate and install ${describeCount(totals.wiRails, 'new rail', 'new rails')} to match the original profile.`);
+      const railCount = parseInt(totals.wiRails, 10) || 0;
+      const railLabel = railCount === 1 ? 'old rail' : 'old rails';
+      const railVerb = railCount === 1 ? 'is' : 'are';
+      const railNeedVerb = railCount === 1 ? 'needs' : 'need';
+      const replaceSizes = Array.from(totals.wiRailReplaceSizes || []).filter(Boolean);
+      const sizeSuffix = replaceSizes.length ? ` (${joinParts(replaceSizes)})` : '';
+      addServiceLine(
+        'Full Rail Replacement',
+        `Cut out ${railCount}x ${railLabel}${sizeSuffix} that ${railVerb} rusted through and ${railNeedVerb} to be replaced. Weld in new rail steel.`
+      );
     }
-    if (totals.posts2x2 > 0 || totals.posts3x3 > 0 || totals.posts1p5 > 0 || totals.posts4x4 > 0){
+    const replaceServiceCounts = totals.postsReplace || zeroPostCounts();
+    if (replaceServiceCounts.posts2x2 > 0 || replaceServiceCounts.posts3x3 > 0 || replaceServiceCounts.posts1p5 > 0 || replaceServiceCounts.posts4x4 > 0){
       const parts = [];
-      if(totals.posts2x2 > 0) parts.push(describeCount(totals.posts2x2, '2x2 post', '2x2 posts'));
-      if(totals.posts3x3 > 0) parts.push(describeCount(totals.posts3x3, '3x3 post', '3x3 posts'));
-      if(totals.posts1p5 > 0) parts.push(describeCount(totals.posts1p5, '1 1/2" x 1 1/2" post', '1 1/2" x 1 1/2" posts'));
-      if(totals.posts4x4 > 0) parts.push(describeCount(totals.posts4x4, '4x4 post', '4x4 posts'));
+      if(replaceServiceCounts.posts2x2 > 0) parts.push(describeCount(replaceServiceCounts.posts2x2, '2x2 post', '2x2 posts'));
+      if(replaceServiceCounts.posts3x3 > 0) parts.push(describeCount(replaceServiceCounts.posts3x3, '3x3 post', '3x3 posts'));
+      if(replaceServiceCounts.posts1p5 > 0) parts.push(describeCount(replaceServiceCounts.posts1p5, '1 1/2" x 1 1/2" post', '1 1/2" x 1 1/2" posts'));
+      if(replaceServiceCounts.posts4x4 > 0) parts.push(describeCount(replaceServiceCounts.posts4x4, '4x4 post', '4x4 posts'));
       const partText = joinParts(parts);
       if(partText) addServiceLine('Replace Fence Posts', `Set new ${partText} in concrete and tie into existing panels.`);
     }
@@ -2060,11 +2585,13 @@ document.addEventListener('DOMContentLoaded', function(){
     if (totals.caps > 0){
       addServiceLine('Post Cap Replacement', `Install ${describeCount(totals.caps, 'new post cap', 'new post caps')} to protect posts and match the existing style.`);
     }
-    if (totals.panelsPrefab > 0){
-      addServiceLine('Install Prefab Panels', `Swap in ${describeCount(totals.panelsPrefab, 'prefabricated panel', 'prefabricated panels')} and secure them to existing posts.`);
+    const prefabSwapCount = Math.max(0, totals.panelsPrefab - (totals.panelsInstallPrefab || 0));
+    if (prefabSwapCount > 0){
+      addServiceLine('Install Prefab Panels', `Swap in ${describeCount(prefabSwapCount, 'prefabricated panel', 'prefabricated panels')} and secure them to existing posts.`);
     }
-    if (totals.panelsCustom > 0){
-      addServiceLine('Build Custom Panels', `Fabricate and install ${describeCount(totals.panelsCustom, 'custom panel', 'custom panels')} on site to match the wrought iron design.`);
+    const customSwapCount = Math.max(0, totals.panelsCustom - (totals.panelsInstallCustom || 0));
+    if (customSwapCount > 0){
+      addServiceLine('Build Custom Panels', `Fabricate and install ${describeCount(customSwapCount, 'custom panel', 'custom panels')} on site to match the wrought iron design.`);
     }
     if (totals.walkRealign > 0){
       addServiceLine('Realign Walk Gates', `Adjust and plumb ${describeCount(totals.walkRealign, 'walk gate', 'walk gates')} for smooth swing and latch.`);
@@ -2075,14 +2602,20 @@ document.addEventListener('DOMContentLoaded', function(){
     if (totals.walkRebuild > 0){
       addServiceLine('Rebuild Walk Gates', `Rebuild ${describeCount(totals.walkRebuild, 'walk gate', 'walk gates')} with new frame and pickets to match the fence.`);
     }
-    if (totals.walkGateAddsSingle > 0 || totals.walkGateAddsDouble > 0){
-      const parts = [];
-      if (totals.walkGateAddsSingle > 0) parts.push(describeCount(totals.walkGateAddsSingle, 'single swing gate', 'single swing gates'));
-      if (totals.walkGateAddsDouble > 0) parts.push(describeCount(totals.walkGateAddsDouble, 'double swing gate', 'double swing gates'));
-      const detail = parts.length ? joinParts(parts) : describeCount(totals.walkGateAdds, 'new walk gate', 'new walk gates');
-      addServiceLine('Add New Walk Gate', `Cut in and install ${detail} complete with posts, frame, and hardware.`);
+    if (totals.walkGateAddsSingle > 0){
+      addServiceLine('Add Single Walk Gate', `Cut in and install ${describeCount(totals.walkGateAddsSingle, 'single swing walk gate', 'single swing walk gates')} complete with posts, frame, and hardware.`);
+    }
+    if (totals.walkGateAddsDouble > 0){
+      addServiceLine('Add Double Walk Gate', `Cut in and install ${describeCount(totals.walkGateAddsDouble, 'double swing gate', 'double swing gates')} complete with posts, frame, and hardware.`);
+    }
+    if (totals.replaceSections > 0){
+      addServiceLine('Remove Fence Sections', `Take down and haul away ${describeCount(totals.replaceSections, 'existing fence section', 'existing fence sections')} prior to installation.`);
+    }
+    if (totals.installSections > 0){
+      addServiceLine('Install New Fence Sections', `Set posts in concrete and install panels for ${describeCount(totals.installSections, 'new wrought iron fence section', 'new wrought iron fence sections')}.`);
     }
 
+    const serviceLines = buildServiceLineOutput();
     renderServiceLineNotes(serviceLines);
 
     // ==== Materials aggregation ====
@@ -2119,7 +2652,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const capHours = totals.caps * (20/60);
     manHours += capHours;
     helperHours += capHours;
-    // Added gates: scoped labor by gate type
+    // Added gates: 4 hours each
     const addedGateHours = (totals.walkGateAddsSingle * 2) + (totals.walkGateAddsDouble * 3);
     manHours += addedGateHours;
     welderHours += addedGateHours;
@@ -2135,13 +2668,21 @@ document.addEventListener('DOMContentLoaded', function(){
         const perStick = Math.max(1, Math.floor(12 / Math.max(1, postLen)));
         raw1p5Total += Math.ceil(count / perStick);
       }
+      const installCount1p5 = parseInt(s._installCalc?.postCounts?.posts1p5 || 0,10) || 0;
+      if(installCount1p5>0){
+        const perStickInstall = Math.max(1, Math.floor(12 / Math.max(1, postLen)));
+        raw1p5Total += Math.ceil(installCount1p5 / perStickInstall);
+      }
       const addG = parseInt(s.walkGatesAdd||0,10) || 0;
-      if(addG>0 && isReplaceOrInstallScope(s.scopeType) && (s.walkAddPostSize||'').trim() === '1 1/2" x 1 1/2"'){
+      if(addG>0 && (s.walkAddPostSize||'').trim() === '1 1/2" x 1 1/2"'){
         const perStickAdd = Math.max(1, Math.floor(12 / Math.max(1, postLen)));
         raw1p5Total += Math.ceil(addG / perStickAdd);
       }
     });
-    if(raw1p5Total>0){ addMat(materials, '1.5x1.5x12 raw steel', raw1p5Total); }
+    if(raw1p5Total>0){
+      steelStickTotals.raw1p5 += raw1p5Total;
+      addMat(materials, '1.5x1.5x12 raw steel', raw1p5Total);
+    }
 
     // posts (2x2 by length)
     const posts2x2ByLenCalc = {};
@@ -2151,8 +2692,10 @@ document.addEventListener('DOMContentLoaded', function(){
       const repCounts = countPostGroups(s.postReplacements);
       const nReplace = repCounts.posts2x2 || 0;
       if(nReplace>0){ posts2x2ByLenCalc[postLen] = (posts2x2ByLenCalc[postLen]||0) + nReplace; }
+      const nInstall2x2 = parseInt(s._installCalc?.postCounts?.posts2x2 || 0,10) || 0;
+      if(nInstall2x2>0){ posts2x2ByLenCalc[postLen] = (posts2x2ByLenCalc[postLen]||0) + nInstall2x2; }
       const addG = parseInt(s.walkGatesAdd||0,10) || 0;
-      if(addG>0 && isReplaceOrInstallScope(s.scopeType) && (s.walkAddPostSize||'').trim() === '2x2'){
+      if(addG>0 && (s.walkAddPostSize||'').trim() === '2x2'){
         posts2x2ByLenCalc[postLen] = (posts2x2ByLenCalc[postLen]||0) + addG;
       }
     });
@@ -2165,14 +2708,20 @@ document.addEventListener('DOMContentLoaded', function(){
     state.sections.forEach(s=>{
       const repCounts = countPostGroups(s.postReplacements);
       const count = repCounts.posts3x3 || 0;
-      const L = feetFromStr(s.height) + 3;
+      const L = Math.max(8, feetFromStr(s.height) + 3);
       if(count>0){
         const perStick = Math.max(1, Math.floor(12 / Math.max(1, L)));
         const sticks = Math.ceil(count / perStick);
         posts3x3ByLenCalc[L] = (posts3x3ByLenCalc[L]||0) + sticks;
       }
+      const installCount3x3 = parseInt(s._installCalc?.postCounts?.posts3x3 || 0,10) || 0;
+      if(installCount3x3>0){
+        const perStickInstall = Math.max(1, Math.floor(12 / Math.max(1, L)));
+        const sticksInstall = Math.ceil(installCount3x3 / perStickInstall);
+        posts3x3ByLenCalc[L] = (posts3x3ByLenCalc[L]||0) + sticksInstall;
+      }
       const addG = parseInt(s.walkGatesAdd||0,10) || 0;
-      if(addG>0 && isReplaceOrInstallScope(s.scopeType) && (s.walkAddPostSize||'').trim() === '3x3'){
+      if(addG>0 && (s.walkAddPostSize||'').trim() === '3x3'){
         const perStickAdd = Math.max(1, Math.floor(12 / Math.max(1, L)));
         const sticksAdd = Math.ceil(addG / perStickAdd);
         posts3x3ByLenCalc[L] = (posts3x3ByLenCalc[L]||0) + sticksAdd;
@@ -2180,21 +2729,30 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     let raw3x3Total = 0;
     Object.values(posts3x3ByLenCalc).forEach(v=>{ raw3x3Total += v; });
-    if(raw3x3Total>0){ addMat(materials, '3x3x12 raw steel', raw3x3Total); }
+    if(raw3x3Total>0){
+      steelStickTotals.raw3x3 += raw3x3Total;
+      addMat(materials, '3x3x12 raw steel', raw3x3Total);
+    }
 
     // 4x4 raw sticks (12ft) incl. gate adds
     const posts4x4ByLenCalc = {};
     state.sections.forEach(s=>{
       const repCounts = countPostGroups(s.postReplacements);
       const count = repCounts.posts4x4 || 0;
-      const L = feetFromStr(s.height) + 3;
+      const L = Math.max(8, feetFromStr(s.height) + 3);
       if(count>0){
         const perStick = Math.max(1, Math.floor(12 / Math.max(1, L)));
         const sticks = Math.ceil(count / perStick);
         posts4x4ByLenCalc[L] = (posts4x4ByLenCalc[L]||0) + sticks;
       }
+      const installCount4x4 = parseInt(s._installCalc?.postCounts?.posts4x4 || 0,10) || 0;
+      if(installCount4x4>0){
+        const perStickInstall = Math.max(1, Math.floor(12 / Math.max(1, L)));
+        const sticksInstall = Math.ceil(installCount4x4 / perStickInstall);
+        posts4x4ByLenCalc[L] = (posts4x4ByLenCalc[L]||0) + sticksInstall;
+      }
       const addG = parseInt(s.walkGatesAdd||0,10) || 0;
-      if(addG>0 && isReplaceOrInstallScope(s.scopeType) && (s.walkAddPostSize||'').trim() === '4x4'){
+      if(addG>0 && (s.walkAddPostSize||'').trim() === '4x4'){
         const perStickAdd = Math.max(1, Math.floor(12 / Math.max(1, L)));
         const sticksAdd = Math.ceil(addG / perStickAdd);
         posts4x4ByLenCalc[L] = (posts4x4ByLenCalc[L]||0) + sticksAdd;
@@ -2202,16 +2760,13 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     let raw4x4Total = 0;
     Object.values(posts4x4ByLenCalc).forEach(v=>{ raw4x4Total += v; });
-    if(raw4x4Total>0){ addMat(materials, '4x4x12 raw steel', raw4x4Total); }
+    if(raw4x4Total>0){
+      steelStickTotals.raw4x4 += raw4x4Total;
+      addMat(materials, '4x4x12 raw steel', raw4x4Total);
+    }
 
     // Concrete
-    let gateConcreteBags = 0;
-    state.sections.forEach(s=>{
-      if(isReplaceOrInstallScope(s.scopeType)){
-        gateConcreteBags += parseInt(s.walkGatesAdd||0,10) || 0;
-      }
-    });
-    const concreteBagsCalc = totals.posts2x2 + totals.posts3x3 + totals.posts1p5 + totals.posts4x4 + Math.ceil((totals.postsRealign2x2 + totals.postsRealign3x3) * 0.5) + totals.walkRealign + gateConcreteBags;
+    const concreteBagsCalc = totals.posts2x2 + totals.posts3x3 + totals.posts1p5 + totals.posts4x4 + Math.ceil((totals.postsRealign2x2 + totals.postsRealign3x3) * 0.5) + totals.walkRealign + totals.walkGateAddsRepair;
 
     // Gate bits + gate materials
     const latchCounts = {};
@@ -2231,33 +2786,28 @@ document.addEventListener('DOMContentLoaded', function(){
         const fN = normalizeSize(frame);
         const pN = normalizeSize(pick);
         if(fN === '1\"' && (pN === '1/2\"' || pN === '5/8\"')){
-          addMat(materials, 'prefab gate panel', rb);
-          addMat(materials, `12ft rail sticks (${frame})`, rb * 2);
+          const gateDescParts = [];
+          if((s.walkRebuildFrame||'').trim()){ gateDescParts.push(`frame ${s.walkRebuildFrame.trim()}`); }
+          if((s.walkRebuildPicket||'').trim()){ gateDescParts.push(`pickets ${s.walkRebuildPicket.trim()}`); }
+          const gateDesc = gateDescParts.length ? ` (${gateDescParts.join(', ')})` : '';
+          addMat(materials, `prefab gate panel${gateDesc}`, rb);
+          addRailSticks(frame, rb * 2);
         } else {
-          addMat(materials, `12ft rail sticks (${frame})`, rb * 2);
-          addMat(materials, `12ft picket sticks (${pick})`, rb * 2);
+          addRailSticks(frame, rb * 2);
+          addPicketSticks(pick, rb * 2);
         }
       }
       const addG = parseInt(s.walkGatesAdd||0,10) || 0;
       if(addG>0){
         if(s.walkAddLatch) latchCounts[s.walkAddLatch] = (latchCounts[s.walkAddLatch]||0) + addG;
         if(s.walkAddHinges) hingeCounts[s.walkAddHinges] = (hingeCounts[s.walkAddHinges]||0) + addG;
-        const gateType = normalizeWalkGateType(s.walkAddMethod);
-        const railMultiplier = gateType === 'double' ? 4 : 2;
-        const railSizes = new Set();
-        const rCount = s.railsCount || (s.rails||[]).length || 0;
-        if(rCount>0){
-          for(let i=0;i<rCount;i++){
-            const r = (s.rails||[])[i] || {};
-            if(r && r.size) railSizes.add(r.size);
-            if(r && r.stacked && r.size2) railSizes.add(r.size2);
-          }
-        }
-        if(railSizes.size === 0 && s.walkAddFrameSize){
-          railSizes.add(s.walkAddFrameSize);
-        }
-        railSizes.forEach(size=>{
-          addMat(materials, `12ft rail sticks (${size})`, addG * railMultiplier);
+        const gateType = s.walkAddType || 'Single Swing Walk Gate';
+        const perGateRail = gateType === 'Double Swing Gate' ? 4 : 2;
+        const sectionRails = sectionRailSizes(s);
+        const frame = s.walkAddFrameSize || '';
+        const railsToCount = sectionRails.length ? sectionRails : (frame ? [frame] : []);
+        railsToCount.forEach(size=>{
+          addRailSticks(size, addG * perGateRail);
         });
       }
     });
@@ -2285,11 +2835,11 @@ document.addEventListener('DOMContentLoaded', function(){
       if (ph <= 0) ph = 54;
       const perStick = Math.max(1, Math.floor(144 / ph));
       const sticks = Math.ceil(need / perStick);
-      const size = s.picketSize;
+      const size = normalizeSize(s.picketSize);
       picketBySizeCalc[size] = (picketBySizeCalc[size]||0) + sticks;
     });
     Object.entries(picketBySizeCalc).forEach(([size, qty])=>{
-      addMat(materials, `12ft picket sticks (${size})`, qty);
+      addPicketSticks(size, qty);
     });
 
     // Rails: patches & replacements → sticks
@@ -2305,12 +2855,12 @@ document.addEventListener('DOMContentLoaded', function(){
         const p = parseInt(r.patches||0,10) || 0;
         const rep = parseInt(r.replacements||0,10) || 0;
         if(p>0){
-          inc(patchBySizeMat, r.size, p);
-          if(r.stacked) inc(patchBySizeMat, r.size2, p);
+          inc(patchBySizeMat, normalizeSize(r.size), p);
+          if(r.stacked) inc(patchBySizeMat, normalizeSize(r.size2), p);
         }
         if(rep>0){
-          inc(replBySizeMat, r.size, rep);
-          if(r.stacked) inc(replBySizeMat, r.size2, rep);
+          inc(replBySizeMat, normalizeSize(r.size), rep);
+          if(r.stacked) inc(replBySizeMat, normalizeSize(r.size2), rep);
         }
       }
     });
@@ -2328,7 +2878,7 @@ document.addEventListener('DOMContentLoaded', function(){
     });
 
     Object.keys(railStickBySizeMat).forEach(size=>{
-      addMat(materials, `12ft rail sticks (${size})`, railStickBySizeMat[size]);
+      addRailSticks(size, railStickBySizeMat[size]);
     });
 
     // Paint estimates
@@ -2366,7 +2916,8 @@ document.addEventListener('DOMContentLoaded', function(){
       const arr = Array.isArray(s.finials) ? s.finials : [];
       arr.forEach(f=>{
         const q = parseInt(f?.qty||0,10) || 0; if(!q) return;
-        addMat(materials, `finials - ${f.material} - ${f.style} (${f.picketSize})`, q);
+        const picketLabel = normalizeSize(f?.picketSize);
+        addMat(materials, `finials - ${f.material} - ${f.style} (${picketLabel})`, q);
       });
     });
     // Caps (descriptive labels) for MATERIALS list
@@ -2387,14 +2938,22 @@ document.addEventListener('DOMContentLoaded', function(){
           const price = PANEL_PRICE[pkey(p.feet, p.picketSize, p.style)];
           const unit = (typeof price==='number') ? price : 0;
           costPanels += p.qty * unit;
-          addMat(materials, `prefab fence panel ${p.height} ${/Finials/i.test(p.style)?'(finials)':''} (${p.picketSize})`, p.qty);
+          const panelDescParts = [];
+          if(p.height) panelDescParts.push(p.height);
+          if(p.style) panelDescParts.push(p.style);
+          if(p.finialStyle && !/Finials/i.test(p.style||'')) panelDescParts.push(`(${p.finialStyle})`);
+          const picketLabel = p.picketSize ? `${p.picketSize} pickets` : '';
+          const panelDesc = panelDescParts.length ? panelDescParts.join(' ') : 'wrought iron';
+          const labelParts = [`prefab fence panel ${panelDesc}`];
+          if(picketLabel) labelParts.push(`(${picketLabel})`);
+          addMat(materials, labelParts.join(' '), p.qty);
           // No extra raw steel for prefab
         } else {
           // Build on site: rails (2 per panel) and pickets per width
           const totalRailInches = 2 * p.widthIn * p.qty; // two horizontals
           const railFeet = totalRailInches / 12;
           const railSticks = Math.ceil(railFeet / 12);
-          addMat(materials, `12ft rail sticks (${p.railSize})`, railSticks);
+          addRailSticks(p.railSize, railSticks);
 
           const picketsPerPanel = picketCountForWidth(p.widthIn, p.picketSize);
           // assume picket height = selected panel height in inches (fallback 54)
@@ -2402,7 +2961,7 @@ document.addEventListener('DOMContentLoaded', function(){
           const perStick = Math.max(1, Math.floor(144 / ph));
           const totalPickets = picketsPerPanel * p.qty;
           const picketSticks = Math.ceil(totalPickets / perStick);
-          addMat(materials, `12ft picket sticks (${p.picketSize})`, picketSticks);
+          addPicketSticks(p.picketSize, picketSticks);
         }
       });
     });
@@ -2457,7 +3016,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const posts2x2CountsCost = {};
     Object.keys(materials).forEach(k=>{
-      const m = k.match(/^2x2x(\\d+)\\s+posts$/);
+      const m = k.match(/^2x2x(\d+)\s+posts$/);
       if(m){ posts2x2CountsCost[m[1]] = (posts2x2CountsCost[m[1]]||0) + materials[k]; }
     });
     Object.entries(posts2x2CountsCost).forEach(([lenStr, qty])=>{
@@ -2473,10 +3032,7 @@ document.addEventListener('DOMContentLoaded', function(){
       matBreak.push('  - 2x2x'+len+' posts: '+qty+' x $'+money(unit)+' = $'+money(c));
     });
 
-    const raw1p5Count = Object.keys(materials).reduce((acc,k)=>{
-      const m = k.match(/^1\.5x1\.5x12 raw steel/);
-      return acc + (m ? materials[k] : 0);
-    },0);
+    const raw1p5Count = steelStickTotals.raw1p5 || 0;
     if(raw1p5Count>0){
       const perFt1p5 = PRICE_FT['1 1/2\"'] || 0;
       const unit1p5 = 12 * perFt1p5;
@@ -2486,10 +3042,7 @@ document.addEventListener('DOMContentLoaded', function(){
       matBreak.push('  - 1.5x1.5 raw steel sticks: '+raw1p5Count+' x 12ft x $'+money(perFt1p5)+'/ft = $'+money(c));
     }
 
-    const raw3x3Count = Object.keys(materials).reduce((acc,k)=>{
-      const m = k.match(/^3x3x12 raw steel/);
-      return acc + (m ? materials[k] : 0);
-    },0);
+    const raw3x3Count = steelStickTotals.raw3x3 || 0;
     if(raw3x3Count>0){
       const unit3x3 = 12 * (PRICE_FT['3x3\"']||0);
       const c = raw3x3Count * unit3x3;
@@ -2497,10 +3050,7 @@ document.addEventListener('DOMContentLoaded', function(){
       matBreak.push('  - 3x3 raw steel sticks: '+raw3x3Count+' x 12ft x $'+money(PRICE_FT['3x3\"']||0)+'/ft = $'+money(c));
     }
 
-    const raw4x4Count = Object.keys(materials).reduce((acc,k)=>{
-      const m = k.match(/^4x4x12 raw steel/);
-      return acc + (m ? materials[k] : 0);
-    },0);
+    const raw4x4Count = steelStickTotals.raw4x4 || 0;
     if(raw4x4Count>0){
       const unit4x4 = 139.73;
       const c = raw4x4Count * unit4x4;
@@ -2508,28 +3058,22 @@ document.addEventListener('DOMContentLoaded', function(){
       matBreak.push('  - 4x4 raw steel sticks: '+raw4x4Count+' x $'+money(unit4x4)+' = $'+money(c));
     }
 
-    const picketLine = /^12ft picket sticks \\((.+?)\\)/;
-    Object.entries(materials).forEach(([label, qty])=>{
-      const m = label.match(picketLine);
-      if(!m) return;
-      const s = normalizeSize(m[1]);
-      const perFt = PRICE_FT[s]||0;
+    Object.keys(picketStickTotals).sort().forEach(size=>{
+      const qty = picketStickTotals[size];
+      const perFt = PRICE_FT[size]||0;
       const c = qty * 12 * perFt;
       if(perFt===0) unpriced = true;
       costMaterials += c;
-      matBreak.push('  - 12ft picket sticks '+s+': '+qty+' x 12ft x $'+money(perFt)+'/ft = $'+money(c));
+      matBreak.push('  - 12ft picket sticks '+size+': '+qty+' x 12ft x $'+money(perFt)+'/ft = $'+money(c));
     });
 
-    const railLine = /^12ft rail sticks \\((.+?)\\)/;
-    Object.entries(materials).forEach(([label, qty])=>{
-      const m = label.match(railLine);
-      if(!m) return;
-      const s = normalizeSize(m[1]);
-      const perFt = PRICE_FT[s]||0;
+    Object.keys(railStickTotals).sort().forEach(size=>{
+      const qty = railStickTotals[size];
+      const perFt = PRICE_FT[size]||0;
       const c = qty * 12 * perFt;
       if(perFt===0) unpriced = true;
       costMaterials += c;
-      matBreak.push('  - 12ft rail sticks '+s+': '+qty+' x 12ft x $'+money(perFt)+'/ft = $'+money(c));
+      matBreak.push('  - 12ft rail sticks '+size+': '+qty+' x 12ft x $'+money(perFt)+'/ft = $'+money(c));
     });
 
     // NEW: Finials cost (flat $1.25 each via total of descriptive labels)
@@ -2652,13 +3196,26 @@ document.addEventListener('DOMContentLoaded', function(){
       lines.push('- Crew: TBD');
     }
 
+    const materialEntries = Object.keys(materials)
+      .filter(label => materials[label] > 0)
+      .sort((a, b) => a.localeCompare(b))
+      .map(label => ({ label, qty: materials[label] }));
+
+    if (materialEntries.length) {
+      lines.push('');
+      lines.push('MATERIALS');
+      materialEntries.forEach(({ label, qty }) => {
+        lines.push(`- ${qty}x ${label}`);
+      });
+    }
+
     const sub = [];
     sub.push('JOB DURATION');
     sub.push('- '+durationStr);
     sub.push('');
     sub.push('MATERIALS');
-    Object.keys(materials).sort((a,b)=>a.localeCompare(b)).forEach(label=>{
-      sub.push('- '+materials[label]+'x '+label);
+    materialEntries.forEach(({ label, qty }) => {
+      sub.push(`- ${qty}x ${label}`);
     });
 
     sub.push('');
@@ -2688,52 +3245,60 @@ document.addEventListener('DOMContentLoaded', function(){
       sub.push('- 1x spray can (red oxide primer)');
     }
 
-    const railSizesSet = new Set();
+      const railSizesSet = new Set();
     state.sections.forEach(s => {
       const rCount = s.railsCount || (s.rails||[]).length || 0;
       for(let i=0;i<rCount;i++){
         const r = (s.rails||[])[i] || {};
-        if(r && r.size) railSizesSet.add(r.size);
-        if(r && r.stacked && r.size2) railSizesSet.add(r.size2);
+        if(r && r.size) railSizesSet.add(normalizeSize(r.size));
+        if(r && r.stacked && r.size2) railSizesSet.add(normalizeSize(r.size2));
       }
     });
-    const picketSizesSet = new Set(state.sections.map(s => s.picketSize).filter(Boolean));
-    railSizesSet.forEach(size => sub.push(`- 3x 12ft rail sticks (${size})`));
-    picketSizesSet.forEach(size => sub.push(`- 3x 12ft picket sticks (${size})`));
+    const picketSizesSet = new Set(state.sections.map(s => normalizeSize(s.picketSize)).filter(Boolean));
+    railSizesSet.forEach(size => { if(size) sub.push(`- 3x 12ft rail sticks (${size})`); });
+    picketSizesSet.forEach(size => { if(size) sub.push(`- 3x 12ft picket sticks (${size})`); });
 
     sub.push('');
     sub.push('SCOPE (Totals)');
+    if (totals.replaceSections > 0) sub.push('- Sections to replace: '+totals.replaceSections);
+    if (totals.installSections > 0) sub.push('- New sections to install: '+totals.installSections);
+    if (totals.removalLf > 0)       sub.push(`- Removal & haul away: ${totals.removalLf} lf (sub paid $${money(totals.removalCost)})`);
     if (totals.wiPickets > 0)       sub.push('- Pickets to replace: '+totals.wiPickets);
     if (totals.wiPatches > 0)       sub.push('- Rail patches: '+totals.wiPatches);
     if (totals.wiRails > 0)         sub.push('- Full rail replacements: '+totals.wiRails);
-    if (totals.posts2x2 > 0)        sub.push('- 2x2 posts to replace: '+totals.posts2x2);
-    if (totals.posts3x3 > 0)        sub.push('- 3x3 posts to replace: '+totals.posts3x3);
-    if (totals.posts1p5 > 0)        sub.push('- 1 1/2" x 1 1/2" posts to replace: '+totals.posts1p5);
-    if (totals.posts4x4 > 0)        sub.push('- 4x4 posts to replace: '+totals.posts4x4);
+    const pushPostLinesSub = (label, counts)=>{
+      const parts = [];
+      if(counts.posts1p5) parts.push(`${counts.posts1p5} × 1 1/2" x 1 1/2"`);
+      if(counts.posts2x2) parts.push(`${counts.posts2x2} × 2x2`);
+      if(counts.posts3x3) parts.push(`${counts.posts3x3} × 3x3`);
+      if(counts.posts4x4) parts.push(`${counts.posts4x4} × 4x4`);
+      if(parts.length) sub.push(`- ${label}: ${parts.join(', ')}`);
+    };
+    pushPostLinesSub('Posts to replace', totals.postsReplace || zeroPostCounts());
+    pushPostLinesSub('Posts to set (new sections)', totals.postsInstall || zeroPostCounts());
     if (totals.postsRealign2x2 > 0) sub.push('- 2x2 posts to realign: '+totals.postsRealign2x2);
     if (totals.postsRealign3x3 > 0) sub.push('- 3x3 posts to realign: '+totals.postsRealign3x3);
     if (totals.walkGates > 0)       sub.push('- Walk gates: '+totals.walkGates);
     if (totals.walkRealign > 0)     sub.push('- Walk gates to realign: '+totals.walkRealign);
     if (totals.walkHardware > 0)    sub.push('- Walk gate hardware replacements: '+totals.walkHardware);
     if (totals.walkRebuild > 0)     sub.push('- Walk gates to rebuild: '+totals.walkRebuild);
-    if (totals.walkGateAddsSingle > 0 || totals.walkGateAddsDouble > 0){
-      const parts = [];
-      if (totals.walkGateAddsSingle > 0) parts.push(describeCount(totals.walkGateAddsSingle, 'single swing gate', 'single swing gates'));
-      if (totals.walkGateAddsDouble > 0) parts.push(describeCount(totals.walkGateAddsDouble, 'double swing gate', 'double swing gates'));
-      sub.push('- Walk gates to add: '+joinParts(parts));
-    }
+    if (totals.walkGateAddsSingle > 0) sub.push('- Single swing walk gates to add: '+totals.walkGateAddsSingle);
+    if (totals.walkGateAddsDouble > 0) sub.push('- Double swing gates to add: '+totals.walkGateAddsDouble);
     if (totals.finials > 0)         sub.push('- Finials to replace: '+totals.finials);
     if (totals.caps > 0)            sub.push('- Post caps to replace: '+totals.caps);
     if (totals.digOut > 0)          sub.push('- Dig out: '+totals.digOut+' lf');
     if (totals.panelsPrefab > 0)    sub.push('- Prefab panels to install: '+totals.panelsPrefab);
     if (totals.panelsCustom > 0)    sub.push('- Panels to custom-build: '+totals.panelsCustom);
+    if (totals.panelsInstallPrefab > 0) sub.push('- New prefab panels: '+totals.panelsInstallPrefab);
+    if (totals.panelsInstallCustom > 0) sub.push('- New custom panels: '+totals.panelsInstallCustom);
     if (paintLenTotal > 0)          sub.push('- Scrape off loose rust and debris, then hand paint '+paintLenTotal+' ft of fence');
     if (totalLenPrimePaint > 0)     sub.push('- Prime with red oxide primer and schedule a return visit after cure to apply the finish coat');
 
     if (notesSubEl) { notesSubEl.value = sub.join('\n'); }
 
     const crewCost = (day1Crew > 0 ? laborCost(day1Crew) : 0) + (day2Crew > 0 ? laborCost(day2Crew) : 0);
-    const directCosts = crewCost + costMaterials;
+    const removalCost = totals.removalCost || 0;
+    const directCosts = crewCost + costMaterials + removalCost;
     const revenueRes = computeChargeRevenue(directCosts);
     const revenue = revenueRes && isFinite(revenueRes.revenue) ? revenueRes.revenue : NaN;
     const commissionFormula$ = isFinite(revenue)
@@ -2756,8 +3321,9 @@ document.addEventListener('DOMContentLoaded', function(){
     const laborDetailWithDays = crewScheduleDetail.length ? crewScheduleDetail.join('; ') : 'TBD';
     cost.push('- Labor: $'+money(crewCost)+' ('+laborDetailWithDays+')');
     cost.push('- Materials: $'+money(costMaterials));
+    if(removalCost>0){ cost.push('- Removal & disposal (paid to sub): $'+money(removalCost)); }
     matBreak.forEach(line=> cost.push(line));
-    cost.push('- Total: $'+money(crewCost + costMaterials));
+    cost.push('- Total: $'+money(crewCost + costMaterials + removalCost));
     if (unpriced) cost.push('  - Note: Some sizes have no price mapping and were counted as $0.');
 
     cost.push('');
@@ -2774,7 +3340,6 @@ document.addEventListener('DOMContentLoaded', function(){
       ? [...lines.slice(idxTotals), '', ...lines.slice(0, idxTotals)]
       : lines;
     const fullNotes = [...outLines, '', ...cost];
-
     notesEl.value = fullNotes.join('\n');
     outputEl.style.display = 'grid';
     if (window.parentIFrame && typeof window.parentIFrame.size === 'function') {
