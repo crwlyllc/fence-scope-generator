@@ -3142,56 +3142,105 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 
     const primePaintScheduled = totalLenPrimePaint > 0;
+    const HOURS_PER_PERSON = 8;
+    const MAX_CREW_PER_DAY = 4;
+    const hasInstallOrReplace = (totals.installSections > 0) || (totals.replaceSections > 0);
+    const MIN_CREW_PER_DAY = hasInstallOrReplace ? 2 : 1;
     const day2Hours = primePaintReturnHours;
-    const day1Hours = Math.max(0, manHours - day2Hours);
-
-    const day1Crew = day1Hours > 0 ? Math.max(1, Math.ceil(day1Hours / 8)) : 0;
-    const day2Crew = primePaintScheduled && day2Hours > 0 ? Math.max(1, Math.ceil(day2Hours / 8)) : 0;
-
     const helperHoursDay2 = day2Hours;
     const helperHoursDay1 = Math.max(0, helperHours - helperHoursDay2);
+    const baseWelderHours = Math.max(0, welderHours);
+    const baseHelperHours = Math.max(0, helperHoursDay1);
 
-    let welderCountDay1 = 0;
-    if(day1Crew > 0 && welderHours > 0){
-      const trackedDay1Hours = welderHours + helperHoursDay1;
-      const share = trackedDay1Hours > 0 ? welderHours / trackedDay1Hours : 1;
-      welderCountDay1 = Math.max(1, Math.round(day1Crew * share));
-      welderCountDay1 = Math.min(welderCountDay1, day1Crew);
-    }
-    let helperCountDay1 = day1Crew > 0 ? Math.max(0, day1Crew - welderCountDay1) : 0;
-    if(helperHoursDay1 > 0 && helperCountDay1 === 0 && day1Crew > 1){
-      helperCountDay1 = 1;
-      welderCountDay1 = Math.max(0, day1Crew - helperCountDay1);
+    const baseDays = [];
+    let remainingBaseHours = baseWelderHours + baseHelperHours;
+    while(remainingBaseHours > 0.01){
+      let crewCount = Math.max(MIN_CREW_PER_DAY, Math.ceil(remainingBaseHours / HOURS_PER_PERSON));
+      crewCount = Math.min(MAX_CREW_PER_DAY, crewCount);
+      baseDays.push({ crew: crewCount });
+      remainingBaseHours = Math.max(0, remainingBaseHours - crewCount * HOURS_PER_PERSON);
     }
 
-    const day1Split = day1Crew > 0 ? describeCrewSplit(welderCountDay1, helperCountDay1) : '';
-    const day2Split = day2Crew > 0 ? describeCrewSplit(0, day2Crew) : '';
+    let remainingWelderHours = baseWelderHours;
+    let remainingHelperHours = baseHelperHours;
+    baseDays.forEach(day => {
+      let welderCount = 0;
+      if(remainingWelderHours > 0){
+        welderCount = Math.min(day.crew, Math.max(1, Math.ceil(remainingWelderHours / HOURS_PER_PERSON)));
+      }
+      if(remainingWelderHours <= 0){ welderCount = 0; }
+
+      let helperCount = day.crew - welderCount;
+      if(remainingHelperHours > 0){
+        const helperNeeded = Math.ceil(remainingHelperHours / HOURS_PER_PERSON);
+        if(helperCount < Math.min(day.crew - welderCount, helperNeeded)){
+          helperCount = Math.min(day.crew - welderCount, helperNeeded);
+        }
+      }
+      if(remainingHelperHours <= 0){
+        helperCount = Math.max(0, day.crew - welderCount);
+      }
+
+      if(helperCount < 0){ helperCount = 0; }
+      if(welderCount + helperCount < day.crew){
+        helperCount = day.crew - welderCount;
+      }
+
+      day.welderCount = welderCount;
+      day.helperCount = helperCount;
+
+      remainingWelderHours = Math.max(0, remainingWelderHours - welderCount * HOURS_PER_PERSON);
+      remainingHelperHours = Math.max(0, remainingHelperHours - helperCount * HOURS_PER_PERSON);
+    });
+
+    const finishDays = [];
+    let remainingFinishHours = helperHoursDay2;
+    while(remainingFinishHours > 0.01){
+      let crewCount = Math.max(MIN_CREW_PER_DAY, Math.ceil(remainingFinishHours / HOURS_PER_PERSON));
+      crewCount = Math.min(MAX_CREW_PER_DAY, crewCount);
+      finishDays.push({ crew: crewCount, welderCount: 0, helperCount: crewCount });
+      remainingFinishHours = Math.max(0, remainingFinishHours - crewCount * HOURS_PER_PERSON);
+    }
+
+    const crewSchedule = [];
+    baseDays.forEach(day => crewSchedule.push({ ...day, kind: primePaintScheduled ? 'prime' : 'base' }));
+    finishDays.forEach(day => crewSchedule.push({ ...day, kind: 'finish' }));
+
     const crewLabelWithMix = (count, split) => {
       if(count <= 0) return '';
       const word = count === 1 ? 'guy' : 'guys';
       return split ? `${count} ${word} (${split})` : `${count} ${word}`;
     };
-    const day1CrewLabel = crewLabelWithMix(day1Crew, day1Split);
-    const day2CrewLabel = crewLabelWithMix(day2Crew, day2Split);
+
+    const scheduleEntries = crewSchedule.map((day, idx) => {
+      const split = describeCrewSplit(day.welderCount || 0, day.helperCount || 0);
+      const crewLabel = crewLabelWithMix(day.crew, split);
+      const suffix = day.kind === 'finish'
+        ? ' (return for finish coat)'
+        : (primePaintScheduled ? ' (prime/repairs)' : '');
+      return {
+        number: idx + 1,
+        crewLabel,
+        suffix,
+      };
+    });
 
     let durationStr = 'TBD';
-    if(day1Crew > 0 && day2Crew > 0){
-      durationStr = `2 days of work: ${day1CrewLabel} on day 1 (prime/repairs), ${day2CrewLabel} on day 2 (return for finish coat)`;
-    } else if(day1Crew > 0){
-      durationStr = `1 day of work: ${day1CrewLabel}`;
-    } else if(day2Crew > 0){
-      durationStr = `1 day of work: ${day2CrewLabel}`;
+    if(scheduleEntries.length === 1){
+      const entry = scheduleEntries[0];
+      durationStr = `1 day of work: ${entry.crewLabel}${entry.suffix}`;
+    } else if(scheduleEntries.length > 1){
+      const parts = scheduleEntries.map(entry => `Day ${entry.number}: ${entry.crewLabel}${entry.suffix}`);
+      durationStr = `${scheduleEntries.length} days of work: ${parts.join(', ')}`;
     }
 
     lines.push('');
     lines.push('CREW');
-    if(day1Crew > 0 && day2Crew > 0){
-      lines.push(`- Day 1 (prime/repairs): ${day1CrewLabel}`);
-      lines.push(`- Day 2 (return for finish coat): ${day2CrewLabel}`);
-    } else if(day1Crew > 0){
-      lines.push(`- 1 day of work: ${day1CrewLabel}`);
-    } else if(day2Crew > 0){
-      lines.push(`- 1 day of work: ${day2CrewLabel}`);
+    if(scheduleEntries.length){
+      scheduleEntries.forEach(entry => {
+        const dayTitle = entry.suffix ? `Day ${entry.number}${entry.suffix}` : `Day ${entry.number}`;
+        lines.push(`- ${dayTitle}: ${entry.crewLabel}`);
+      });
     } else {
       lines.push('- Crew: TBD');
     }
@@ -3294,9 +3343,17 @@ document.addEventListener('DOMContentLoaded', function(){
     if (paintLenTotal > 0)          sub.push('- Scrape off loose rust and debris, then hand paint '+paintLenTotal+' ft of fence');
     if (totalLenPrimePaint > 0)     sub.push('- Prime with red oxide primer and schedule a return visit after cure to apply the finish coat');
 
+    if(scheduleEntries.length > 1){
+      scheduleEntries.forEach(entry => {
+        const dayTitle = entry.suffix ? `Day ${entry.number}${entry.suffix}` : `Day ${entry.number}`;
+        sub.push(`- ${dayTitle}: ${entry.crewLabel}`);
+      });
+    }
+
     if (notesSubEl) { notesSubEl.value = sub.join('\n'); }
 
-    const crewCost = (day1Crew > 0 ? laborCost(day1Crew) : 0) + (day2Crew > 0 ? laborCost(day2Crew) : 0);
+    const totalCrewCount = crewSchedule.reduce((acc, day) => acc + (day.crew || 0), 0);
+    const crewCost = laborCost(totalCrewCount);
     const removalCost = totals.removalCost || 0;
     const directCosts = crewCost + costMaterials + removalCost;
     const revenueRes = computeChargeRevenue(directCosts);
@@ -3307,18 +3364,10 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const cost = [];
     cost.push('ESTIMATED COST');
-    const crewScheduleDetail = [];
-    if(day1Crew > 0){
-      const suffix = primePaintScheduled ? ' (prime/repairs)' : '';
-      const base = day1Split ? `${day1Crew} ${day1Crew === 1 ? 'guy' : 'guys'} — ${day1Split}` : day1CrewLabel;
-      crewScheduleDetail.push(`Day 1: ${base}${suffix}`);
-    }
-    if(day2Crew > 0){
-      const suffix = primePaintScheduled ? ' (finish coat)' : '';
-      const base = day2Split ? `${day2Crew} ${day2Crew === 1 ? 'guy' : 'guys'} — ${day2Split}` : day2CrewLabel;
-      crewScheduleDetail.push(`Day 2: ${base}${suffix}`);
-    }
-    const laborDetailWithDays = crewScheduleDetail.length ? crewScheduleDetail.join('; ') : 'TBD';
+    const crewScheduleDetail = scheduleEntries.map(entry => `Day ${entry.number}: ${entry.crewLabel}${entry.suffix}`);
+    const laborDetailWithDays = crewScheduleDetail.length
+      ? `${crewScheduleDetail.join('; ')}; total crew-equivalent: ${totalCrewCount}`
+      : 'TBD';
     cost.push('- Labor: $'+money(crewCost)+' ('+laborDetailWithDays+')');
     cost.push('- Materials: $'+money(costMaterials));
     if(removalCost>0){ cost.push('- Removal & disposal (paid to sub): $'+money(removalCost)); }
